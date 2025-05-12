@@ -5,6 +5,9 @@ export interface AppError extends Error {
   statusCode?: number;
   details?: any;
   code?: string;
+  originalBody?: string;  // The original request body before any cleaning
+  cleanedBody?: string;   // The cleaned body after our preprocessing
+  parseError?: Error;     // The original parse error
 }
 
 export const errorHandler = (
@@ -28,14 +31,78 @@ export const errorHandler = (
     // Special handling for apply* endpoints
     if (req.path.startsWith('/api/axl/apply')) {
       const errorPosition = err.message.match(/position (\d+)/);
+      const methodName = req.path.split('/').pop();
       let helpfulMessage = `Invalid JSON in request body: ${err.message}`;
+      let examplePayload = '';
 
-      // Add specific guidance if it's the common error at position 53 (line 4, column 3)
-      if (errorPosition && errorPosition[1] === '53') {
-        helpfulMessage += `\n\nThis is likely due to a trailing comma or format issue near line 4. Common causes:
+      // Determine which apply* endpoint and provide a suitable example
+      const applyMethod = methodName || 'apply';
+      const resourceName = applyMethod.replace('apply', '').toLowerCase();
+
+      // Generate example for common apply endpoints
+      if (applyMethod === 'applyPhone') {
+        examplePayload = `{
+  "applyPhone": {
+    "phone": {
+      "name": "SEP001122334455",
+      "description": "John Doe's Phone",
+      "lines": {
+        "line": [
+          {
+            "index": 1,
+            "dirn": {
+              "pattern": "1234"
+            }
+          }
+        ]
+      }
+    }
+  }
+}`;
+      } else if (resourceName) {
+        // Generic example for other apply methods
+        examplePayload = `{
+  "apply${resourceName.charAt(0).toUpperCase() + resourceName.slice(1)}": {
+    "${resourceName}": {
+      "name": "Example${resourceName}",
+      "description": "Example description"
+    }
+  }
+}`;
+      }
+
+      // Add specific guidance based on error position
+      if (errorPosition) {
+        const position = parseInt(errorPosition[1]);
+
+        // Common error at position 53 (line 4, column 3)
+        if (position >= 50 && position <= 60) {
+          helpfulMessage += `\n\nThis is likely due to a trailing comma or format issue near line 4. Common causes:
 1. Trailing comma after a property (remove the extra comma)
 2. Missing quotes around property name (ensure all property names have double quotes)
 3. Unclosed braces or brackets (check that all {, [, " have matching closing characters)`;
+        }
+        // Errors near the beginning
+        else if (position < 20) {
+          helpfulMessage += `\n\nThis error is near the beginning of your JSON. Common causes:
+1. Missing opening brace {
+2. Invalid character at the start of the payload
+3. Malformatted property name at the root level`;
+        }
+        // Other positions
+        else {
+          helpfulMessage += `\n\nCommon JSON syntax problems:
+1. Missing quotes around property names (all property names must have double quotes)
+2. Using single quotes instead of double quotes (JSON requires double quotes)
+3. Trailing commas in objects or arrays (remove extra commas)
+4. Unquoted string values (string values must be in double quotes)
+5. Using JavaScript-style comments (JSON does not support comments)`;
+        }
+      }
+
+      // Add enhanced error info if available from our middleware
+      if (err.originalBody) {
+        helpfulMessage += `\n\nOur parser attempted to fix common syntax issues but still failed.`;
       }
 
       return res.status(400).json({
@@ -43,7 +110,8 @@ export const errorHandler = (
         message: helpfulMessage,
         statusCode: 400,
         path: req.path,
-        hint: "The payload should follow strict JSON format. If you're using applyPhone, ensure the payload structure is correct."
+        hint: `The payload must follow strict JSON format for ${applyMethod} operations.`,
+        example: examplePayload ? `Example payload:\n${examplePayload}` : undefined
       });
     }
 

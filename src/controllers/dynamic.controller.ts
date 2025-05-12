@@ -391,35 +391,43 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
         console.log(`No parameter type specified, defaulting to uuid`);
         tags.uuid = paramValue;
       }
-    } else if (method.toLowerCase() === 'applyphone') {
-      // Special handling for applyPhone which has a unique structure
-      console.log(`Special handling for applyPhone operation`);
-      console.log(`Request body for applyPhone:`, JSON.stringify(req.body, null, 2));
+    } else if (method.toLowerCase().startsWith('apply')) {
+      // Special handling for all apply* operations which have a unique structure
+      console.log(`Special handling for ${method} operation`);
+      console.log(`Request body for ${method}:`, JSON.stringify(req.body, null, 2));
 
-      // For applyPhone operation, always create a properly structured request
+      // Extract the resource name from the method (e.g., 'phone' from 'applyPhone')
+      const resourceName = method.substring(5).toLowerCase(); // Remove 'apply' prefix
+      const firstChar = method.charAt(5); // First character after 'apply'
+      const camelCaseResource = firstChar.toLowerCase() + method.substring(6);
+
+      // For apply* operations, always create a properly structured request
       const requestBody = req.body || {};
 
-      // Create a proper applyPhone structure with phone tag
-      if (requestBody.applyPhone) {
-        // Body already has applyPhone wrapper
+      // Handle multiple formats gracefully
+      if (requestBody[method]) {
+        // Body already has proper wrapper (e.g., applyPhone: {...})
         tags = requestBody;
-      } else if (requestBody.phone) {
-        // Body already has inner phone object
+        console.log(`Using existing ${method} wrapper`);
+      } else if (requestBody[camelCaseResource]) {
+        // Body has inner resource object (e.g., phone: {...})
         tags = {
-          applyPhone: {
-            phone: requestBody.phone
+          [method]: {
+            [camelCaseResource]: requestBody[camelCaseResource]
           }
         };
+        console.log(`Using existing ${camelCaseResource} object with ${method} wrapper`);
       } else {
-        // Assume entire body is the phone object
+        // Assume entire body is the resource object
         tags = {
-          applyPhone: {
-            phone: requestBody
+          [method]: {
+            [camelCaseResource]: requestBody
           }
         };
+        console.log(`Wrapping entire body as ${camelCaseResource} object in ${method}`);
       }
 
-      console.log(`Final applyPhone tags:`, JSON.stringify(tags, null, 2));
+      console.log(`Final ${method} tags:`, JSON.stringify(tags, null, 2));
     } else {
       // For other methods, use a combination of params, query, and body
       console.log(`Handling operation: ${method}, HTTP method: ${req.method}`);

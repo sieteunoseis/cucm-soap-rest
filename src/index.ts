@@ -48,31 +48,60 @@ app.use('/api/axl/apply*', (req, res, next) => {
     });
 
     req.on('end', () => {
+      // Skip empty bodies
+      if (!data.trim()) {
+        req.body = {};
+        return next();
+      }
+
+      // Log the raw body for debugging (only in development)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Raw apply* endpoint request body: ${data}`);
+      }
+
+      // Pre-process JSON to handle common syntax errors
+      let cleanedJson: string = data
+        // Remove comments (both single line // and multi-line /* */)
+        .replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '')
+        // Remove trailing commas in objects
+        .replace(/,\s*}/g, '}')
+        // Remove trailing commas in arrays
+        .replace(/,\s*\]/g, ']')
+        // Replace single quotes with double quotes for properties and string values
+        .replace(/'([^']*?)'/g, '"$1"')
+        // Replace single-quoted property names with double quotes
+        .replace(/(\w+)'/g, '"$1"')
+        .replace(/'(\w+)/g, '"$1')
+        // Ensure property names are double-quoted (this is a common error at position 53)
+        .replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3')
+        // Fix boolean values that might be capitalized (True/False)
+        .replace(/":\s*True\b/g, '": true')
+        .replace(/":\s*False\b/g, '": false')
+        // Handle unquoted string values (riskier, but useful for apply endpoints)
+        .replace(/":\s*([a-zA-Z0-9_\-]+)(\s*[,}])/g, '": "$1"$2');
+
+      // Log the cleaned JSON (only in development)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Cleaned apply* endpoint JSON: ${cleanedJson}`);
+      }
+
       try {
-        // Skip empty bodies
-        if (!data.trim()) {
-          req.body = {};
-          return next();
-        }
-
-        // Pre-process JSON to handle common syntax errors
-        let cleanedJson = data
-          // Remove trailing commas in objects
-          .replace(/,\s*}/g, '}')
-          // Remove trailing commas in arrays
-          .replace(/,\s*\]/g, ']')
-          // Replace single quotes with double quotes for properties
-          .replace(/(\w+)'/g, '"$1"')
-          .replace(/'(\w+)/g, '"$1')
-          // Ensure property names are double-quoted (this is a common error at position 53)
-          .replace(/([{,]\s*)(\w+)(\s*:)/g, '$1"$2"$3');
-
         // Parse the cleaned JSON
         req.body = JSON.parse(cleanedJson);
         next();
       } catch (error) {
-        // Still failed to parse JSON, pass to next middleware to handle
-        next(error);
+        // Safely access error message for any error type
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`JSON parse error in apply* endpoint: ${errorMessage}`);
+
+        // Create a more descriptive error with the original and cleaned JSON
+        const enhancedError: any = new Error(`JSON parsing error: ${errorMessage}`);
+        enhancedError.originalBody = data;
+        enhancedError.cleanedBody = cleanedJson;
+        enhancedError.parseError = error;
+
+        // Still failed to parse JSON, pass enhanced error to next middleware
+        next(enhancedError);
       }
     });
   } else {
