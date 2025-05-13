@@ -51,7 +51,7 @@ export const lineExample = {
     asciiAlertingName: "%%_firstName_%% %%_lastName_%%",
     description: "%%_firstName_%% %%_lastName_%%",
     _data: {
-      extension: "13758084002", // Note: Use plain numbers without + or \ characters
+      extension: "+13758084002", // We can now safely use + signs in template variables
       firstName: "Tom",
       lastName: "Smith"
     }

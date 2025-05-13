@@ -94,6 +94,25 @@ This API supports template variables in JSON payloads using the [json-variables]
 }
 ```
 
+If you need to use a pattern with a plus sign (like an E.164 number format), specify it directly in the _data object. The JSON variables processor will handle it correctly:
+
+```json
+{
+  "line": {
+    "pattern": "%%_extension_%%",
+    "routePartitionName": "INTERNAL-PT",
+    "alertingName": "%%_firstName_%% %%_lastName_%%",
+    "asciiAlertingName": "%%_firstName_%% %%_lastName_%%",
+    "description": "%%_firstName_%% %%_lastName_%%",
+    "_data": {
+      "extension": "+13758084002",
+      "firstName": "Tom",
+      "lastName": "Smith"
+    }
+  }
+}
+```
+
 In this example, the payload will be processed to replace all occurrences of `%%_extension_%%`, `%%_firstName_%%`, and `%%_lastName_%%` with their respective values from the `_data` object. The `_data` field will be automatically removed before sending to the AXL API.
 
 ### Important Notes
@@ -106,6 +125,7 @@ In this example, the payload will be processed to replace all occurrences of `%%
 ### Curl Example
 
 ```bash
+# Basic example
 curl -X 'PUT' \
   'http://localhost:3000/api/axl/line' \
   -H 'accept: application/json' \
@@ -119,6 +139,26 @@ curl -X 'PUT' \
     "description": "%%_firstName_%% %%_lastName_%%",
     "_data": {
       "extension": "13758084002",
+      "firstName": "Tom",
+      "lastName": "Smith"
+    }
+  }
+}'
+
+# Example with E.164 format (including plus sign)
+curl -X 'PUT' \
+  'http://localhost:3000/api/axl/line' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "line": {
+    "pattern": "%%_extension_%%",
+    "routePartitionName": "INTERNAL-PT",
+    "alertingName": "%%_firstName_%% %%_lastName_%%",
+    "asciiAlertingName": "%%_firstName_%% %%_lastName_%%",
+    "description": "%%_firstName_%% %%_lastName_%%",
+    "_data": {
+      "extension": "+13758084002",
       "firstName": "Tom",
       "lastName": "Smith"
     }

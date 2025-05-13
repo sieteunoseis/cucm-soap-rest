@@ -6,22 +6,86 @@ import { swaggerSpec } from "../utils/api-explorer";
 import fs from "fs";
 import path from "path";
 import { getExampleForResource } from "../utils/resource-examples";
-// Import json-variables with a dynamic import
-// We'll use a function to handle the async import
-let jsonVariablesModule: any = null;
-
-// Function to dynamically import json-variables
-async function getJsonVariables() {
-  if (!jsonVariablesModule) {
-    try {
-      // Dynamically import the module
-      jsonVariablesModule = await import('json-variables');
-    } catch (error) {
-      console.error('Error importing json-variables:', error);
-      throw error;
+// Custom function to process template variables without external dependencies
+function processTemplateVariables(obj: any, dataContainerIdentifierTails: string = '_data'): any {
+  // Deep clone the object to avoid modifying the original
+  const result = JSON.parse(JSON.stringify(obj));
+  
+  // Find all _data containers in the object
+  const dataContainers: { container: any, path: string[] }[] = [];
+  
+  // Function to recursively search for _data containers
+  function findDataContainers(currentObj: any, path: string[] = []) {
+    if (!currentObj || typeof currentObj !== 'object') return;
+    
+    // Check if this object is a data container
+    if (Object.prototype.hasOwnProperty.call(currentObj, dataContainerIdentifierTails)) {
+      dataContainers.push({ 
+        container: currentObj,
+        path: [...path]
+      });
+    }
+    
+    // Recursively search in all properties
+    for (const key in currentObj) {
+      if (Object.prototype.hasOwnProperty.call(currentObj, key)) {
+        findDataContainers(currentObj[key], [...path, key]);
+      }
     }
   }
-  return jsonVariablesModule;
+  
+  // Start the search
+  findDataContainers(result);
+  
+  // Process each data container
+  for (const { container, path } of dataContainers) {
+    const dataValues = container[dataContainerIdentifierTails];
+    const parentContainer = container;
+    
+    // Process each string value in the parent container
+    processContainerValues(parentContainer, dataValues);
+    
+    // Remove the data container
+    delete parentContainer[dataContainerIdentifierTails];
+  }
+  
+  return result;
+}
+
+// Process string values in a container, replacing template markers
+function processContainerValues(container: any, dataValues: any) {
+  // Skip processing if container or dataValues are not objects
+  if (!container || typeof container !== 'object' || !dataValues || typeof dataValues !== 'object') {
+    return;
+  }
+  
+  // Process each key in the container
+  for (const key in container) {
+    if (Object.prototype.hasOwnProperty.call(container, key)) {
+      const value = container[key];
+      
+      // Skip the data container itself
+      if (key === '_data') continue;
+      
+      // If value is a string, process template variables
+      if (typeof value === 'string') {
+        container[key] = processStringValue(value, dataValues);
+      } 
+      // If value is an object, recursively process it
+      else if (value && typeof value === 'object') {
+        processContainerValues(value, dataValues);
+      }
+    }
+  }
+}
+
+// Process a string value, replacing all template markers
+function processStringValue(value: string, dataValues: any): string {
+  // Replace all occurrences of %%_variable_%% with the corresponding value
+  return value.replace(/%%_([^%]+)_%%/g, (match, variableName) => {
+    // Return the replacement if it exists, otherwise keep the original marker
+    return dataValues[variableName] !== undefined ? dataValues[variableName] : match;
+  });
 }
 
 // Function to add paths to Swagger spec
@@ -499,28 +563,21 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
       console.log(`Does tags include "_data:" specifically? ${hasFieldsAlt}`);
       
       if (hasDataFields || hasFieldsAlt) {
-        console.log(`Found template variables in tags, processing with json-variables...`);
+        console.log(`Found template variables in tags, processing with custom template processor...`);
         try {
-          // Get the json-variables module and process the tags
-          const jsonVariables = await getJsonVariables();
-          console.log(`Successfully imported json-variables module:`, jsonVariables);
-          
-          // Log the structure of jsonVariables to see what's available
-          console.log(`JSON Variables module structure:`, Object.keys(jsonVariables));
-          
-          // Try to use the module to process the tags
-          const processedTags = jsonVariables.default(tags, { dataContainerIdentifierTails });
-          console.log(`Processed tags with json-variables:`, JSON.stringify(processedTags, null, 2));
+          // Process template variables with our custom function
+          const processedTags = processTemplateVariables(tags, dataContainerIdentifierTails);
+          console.log(`Processed tags with template processor:`, JSON.stringify(processedTags, null, 2));
           
           // Assign the processed tags back to tags
           tags = processedTags;
-        } catch (jVarError) {
-          console.error(`Error processing template variables with json-variables:`, jVarError);
-          console.error(`Error details:`, jVarError.stack);
-          // Continue with original tags if json-variables processing fails
+        } catch (templateError) {
+          console.error(`Error processing template variables:`, templateError);
+          console.error(`Error details:`, templateError.stack);
+          // Continue with original tags if processing fails
         }
       } else {
-        console.log(`No template variables found in tags, skipping json-variables processing.`);
+        console.log(`No template variables found in tags, skipping template processing.`);
       }
       
       // Execute the AXL operation
