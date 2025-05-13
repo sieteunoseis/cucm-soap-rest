@@ -43,6 +43,21 @@ export const phoneExample = {
   }
 };
 
+export const lineExample = {
+  line: {
+    pattern: "%%_extension_%%",
+    routePartitionName: "",
+    alertingName: "%%_firstName_%% %%_lastName_%%",
+    asciiAlertingName: "%%_firstName_%% %%_lastName_%%",
+    description: "%%_firstName_%% %%_lastName_%%",
+    _data: {
+      extension: "1001",
+      firstName: "Tom",
+      lastName: "Smith"
+    }
+  }
+};
+
 /**
  * Returns examples for specific resource types
  */
@@ -63,6 +78,7 @@ export function getExampleForResource(resourceUrlPath: string): any {
     'huntpilot': 'huntPilot',
     'devicepool': 'devicePool',
     'phonebuttontemplate': 'phoneButtonTemplate',
+    'line': 'line',
   };
   
   // Get the correct camelCase resource tag (default to resourceUrlPath if not found)
@@ -105,6 +121,19 @@ export function getExampleForResource(resourceUrlPath: string): any {
       example2: {
         summary: "Without resource key wrapper",
         value: phoneExample.phone
+      }
+    };
+  }
+  
+  if (resourceLower === 'line') {
+    return {
+      example1: {
+        summary: "With line key and json-variables",
+        value: lineExample
+      },
+      example2: {
+        summary: "Without resource key wrapper",
+        value: lineExample.line
       }
     };
   }
