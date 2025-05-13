@@ -84,7 +84,13 @@ function addPathToSwagger(
   swaggerSpec.paths[path][httpMethod.toLowerCase()] = {
     summary: `${httpMethod.toUpperCase()} ${path}`,
     description: pathDescription,
-    tags: [path.split('/')[3] || 'axl'], // Use the URL path resource name as the tag
+    tags: [
+      method.toLowerCase().startsWith('apply') ? 'apply' :
+      method.toLowerCase().startsWith('reset') ? 'reset' :
+      method.toLowerCase().startsWith('do') ? 'do' :
+      method.toLowerCase().startsWith('restart') ? 'restart' :
+      (path.split('/')[3] || 'axl')
+    ], // Group apply*, reset*, do*, and restart* endpoints together, otherwise use the URL path resource name as the tag
     parameters: parameters.length > 0 ? parameters : undefined,
     requestBody: requestBody,
     responses: {
