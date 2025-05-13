@@ -1,13 +1,16 @@
 {
   "name": "cucm-soap-rest",
-  "version": "1.6.0",
-  "description": "Dynamic REST API for Cisco AXL operations",
+  "version": "1.7.0",
+  "description": "Dynamic REST API for Cisco AXL SOAP operations",
   "main": "dist/index.js",
   "scripts": {
     "start": "node dist/index.js",
     "dev": "nodemon --config nodemon.json",
     "build": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "version:patch": "node scripts/bump-version.js patch",
+    "version:minor": "node scripts/bump-version.js minor",
+    "version:major": "node scripts/bump-version.js major"
   },
   "keywords": [
     "cisco",

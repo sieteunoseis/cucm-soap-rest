@@ -8,6 +8,7 @@ import path from "path";
 import { getExampleForResource } from "../utils/resource-examples";
 import { processTemplateVariables, hasTemplateVariables } from "../utils/template-processor";
 import { generatePathDescription, generateExamples, generateSummary, generateTags } from "../utils/swagger-helpers";
+import { packageInfo } from "../utils/version";
 
 // Function to add paths to Swagger spec
 function addPathToSwagger(
@@ -948,8 +949,8 @@ async function updateSwaggerFile(operations: string[]) {
         openapi: "3.0.0",
         info: {
           title: "Cisco AXL REST API",
-          version: "1.0.0",
-          description: "A dynamic REST API for Cisco Administrative XML (AXL) operations",
+          version: packageInfo.version,
+          description: packageInfo.description,
         },
         servers: [
           {

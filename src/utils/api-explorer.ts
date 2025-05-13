@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { getExampleForResource } from './resource-examples';
 import { getResourceTagFromMethod } from './method-mapper';
+import { packageInfo } from './version';
 
 // Define explicit type for Swagger spec
 interface SwaggerSpec {
@@ -28,18 +29,14 @@ export const swaggerSpec: SwaggerSpec = {
   openapi: '3.0.0',
   info: {
     title: 'Cisco AXL REST API',
-    version: '1.0.0',
-    description: 'A dynamic REST API for Cisco Administrative XML (AXL) operations',
+    version: packageInfo.version,
+    description: packageInfo.description,
   },
   servers: [
     {
       url: '/',
       description: 'API Base URL (relative path)',
-    },
-    {
-      url: 'http://localhost:3000',
-      description: 'Local development server',
-    },
+    }
   ],
   paths: {},
   components: {

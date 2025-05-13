@@ -1,4 +1,4 @@
-# CUCM SOAP to REST API
+# Dynamic REST API for Cisco AXL SOAP operations
 
 A dynamic REST API built with Express and TypeScript that provides a RESTful interface to the Cisco Administrative XML (AXL) SOAP-based API. The API automatically maps AXL operations to appropriate HTTP methods based on their naming patterns and provides Swagger documentation.
 
@@ -22,17 +22,20 @@ A dynamic REST API built with Express and TypeScript that provides a RESTful int
 ### Setup
 
 1. Clone the repository
+
 ```bash
 git clone <repository-url>
 cd cucm-soap-rest
 ```
 
 2. Install dependencies
+
 ```bash
 npm install
 ```
 
 3. Create a `.env` file in the root directory with the following variables:
+
 ```
 CUCM_HOST=your-cucm-server
 CUCM_USER=your-username
@@ -50,7 +53,6 @@ npm install
 
 # Start development server with hot-reloading
 npm run dev
-# NOTE FOR CLAUDE: Do not run npm run dev as it's already running in the background
 
 # Build for production
 npm run build
@@ -67,6 +69,34 @@ docker run -p 3000:3000 --env-file .env cucm-soap-rest
 # Run with Docker Compose
 docker-compose up
 ```
+
+### Version Management
+
+The project includes scripts to help manage versioning consistently across package.json and the Swagger API documentation:
+
+```bash
+# Increment patch version (e.g., 1.7.0 -> 1.7.1)
+npm run version:patch
+
+# Increment minor version (e.g., 1.7.0 -> 1.8.0)
+npm run version:minor
+
+# Increment major version (e.g., 1.7.0 -> 2.0.0)
+npm run version:major
+
+# Set a specific version
+node scripts/bump-version.js 1.9.0
+```
+
+These commands automatically:
+1. Update the version in package.json
+2. Rebuild the project to update the Swagger documentation
+3. Suggest git commands to commit the changes
+
+Choose the appropriate command based on the changes made:
+- `version:patch` - For bug fixes and small changes that don't affect the API
+- `version:minor` - For new features or non-breaking changes
+- `version:major` - For breaking changes to the API
 
 ## API Documentation
 
@@ -89,41 +119,39 @@ This API supports template variables in JSON payloads using the [json-variables]
 
 ```json
 {
-  "line": {
-    "pattern": "%%_extension_%%",
-    "routePartitionName": "INTERNAL-PT",
-    "alertingName": "%%_firstName_%% %%_lastName_%%",
-    "asciiAlertingName": "%%_firstName_%% %%_lastName_%%",
-    "description": "%%_firstName_%% %%_lastName_%%",
-    "_data": {
-      "extension": "13758084002",
-      "firstName": "Tom",
-      "lastName": "Smith"
-    }
+  "pattern": "%%_extension_%%",
+  "routePartitionName": "INTERNAL-PT",
+  "alertingName": "%%_firstName_%% %%_lastName_%%",
+  "asciiAlertingName": "%%_firstName_%% %%_lastName_%%",
+  "description": "%%_firstName_%% %%_lastName_%%",
+  "_data": {
+    "extension": "3000",
+    "firstName": "Tom",
+    "lastName": "Smith"
   }
 }
 ```
 
-If you need to use a pattern with a plus sign (like an E.164 number format), use the backslash-escaped format in the _data object. The template processor will handle it correctly:
+If you need to use a pattern with a plus sign (like an E.164 number format), use the backslash-escaped format in the \_data object. The template processor will handle it correctly:
 
 ```json
 {
-  "line": {
-    "pattern": "%%_extension_%%",
-    "routePartitionName": "INTERNAL-PT",
-    "alertingName": "%%_firstName_%% %%_lastName_%%",
-    "asciiAlertingName": "%%_firstName_%% %%_lastName_%%",
-    "description": "%%_firstName_%% %%_lastName_%%",
-    "_data": {
-      "extension": "\\+13758084002",
-      "firstName": "Tom",
-      "lastName": "Smith"
-    }
+  "pattern": "%%_extension_%%",
+  "routePartitionName": "INTERNAL-PT",
+  "alertingName": "%%_firstName_%% %%_lastName_%%",
+  "asciiAlertingName": "%%_firstName_%% %%_lastName_%%",
+  "description": "%%_firstName_%% %%_lastName_%%",
+  "_data": {
+    "extension": "\\+13758084002",
+    "firstName": "Tom",
+    "lastName": "Smith"
   }
 }
 ```
 
 In this example, the payload will be processed to replace all occurrences of `%%_extension_%%`, `%%_firstName_%%`, and `%%_lastName_%%` with their respective values from the `_data` object. The `_data` field will be automatically removed before sending to the AXL API.
+
+Note: This example is for an updateLine operation, but the same principles apply to other operations as well.
 
 ### Important Notes
 
@@ -136,12 +164,11 @@ In this example, the payload will be processed to replace all occurrences of `%%
 
 ```bash
 # Basic example
-curl -X 'PUT' \
+curl -X 'PATCH' \
   'http://localhost:3000/api/axl/line' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
-  "line": {
     "pattern": "%%_extension_%%",
     "routePartitionName": "INTERNAL-PT",
     "alertingName": "%%_firstName_%% %%_lastName_%%",
@@ -152,16 +179,14 @@ curl -X 'PUT' \
       "firstName": "Tom",
       "lastName": "Smith"
     }
-  }
-}'
+  }'
 
 # Example with E.164 format (including escaped plus sign)
-curl -X 'PUT' \
+curl -X 'PATCH' \
   'http://localhost:3000/api/axl/line' \
   -H 'accept: application/json' \
   -H 'Content-Type: application/json' \
   -d '{
-  "line": {
     "pattern": "%%_extension_%%",
     "routePartitionName": "INTERNAL-PT",
     "alertingName": "%%_firstName_%% %%_lastName_%%",
@@ -172,8 +197,7 @@ curl -X 'PUT' \
       "firstName": "Tom",
       "lastName": "Smith"
     }
-  }
-}'
+  }'
 ```
 
 ## Docker Deployment
