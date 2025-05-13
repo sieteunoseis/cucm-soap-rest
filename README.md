@@ -75,18 +75,18 @@ This API supports template variables in JSON payloads using the [json-variables]
 2. Add a `_data` object containing your variable values
 3. The API will automatically process and replace the variables before sending to CUCM
 
-### Example
+### Example JSON
 
 ```json
 {
   "line": {
     "pattern": "%%_extension_%%",
-    "routePartitionName": "",
+    "routePartitionName": "INTERNAL-PT",
     "alertingName": "%%_firstName_%% %%_lastName_%%",
     "asciiAlertingName": "%%_firstName_%% %%_lastName_%%",
     "description": "%%_firstName_%% %%_lastName_%%",
     "_data": {
-      "extension": "1001",
+      "extension": "13758084002",
       "firstName": "Tom",
       "lastName": "Smith"
     }
@@ -95,6 +95,36 @@ This API supports template variables in JSON payloads using the [json-variables]
 ```
 
 In this example, the payload will be processed to replace all occurrences of `%%_extension_%%`, `%%_firstName_%%`, and `%%_lastName_%%` with their respective values from the `_data` object. The `_data` field will be automatically removed before sending to the AXL API.
+
+### Important Notes
+
+1. When using template variables, ensure your JSON is properly formatted and doesn't contain invalid escape sequences
+2. For phone numbers, use plain strings without special characters like `+` or backslashes
+3. Use valid values that match your CUCM configuration (like partition names)
+4. Avoid using characters that require JSON escaping in the template variables themselves
+
+### Curl Example
+
+```bash
+curl -X 'PUT' \
+  'http://localhost:3000/api/axl/line' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "line": {
+    "pattern": "%%_extension_%%",
+    "routePartitionName": "INTERNAL-PT",
+    "alertingName": "%%_firstName_%% %%_lastName_%%",
+    "asciiAlertingName": "%%_firstName_%% %%_lastName_%%",
+    "description": "%%_firstName_%% %%_lastName_%%",
+    "_data": {
+      "extension": "13758084002",
+      "firstName": "Tom",
+      "lastName": "Smith"
+    }
+  }
+}'
+```
 
 ## License
 

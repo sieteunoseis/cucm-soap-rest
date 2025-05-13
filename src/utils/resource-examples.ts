@@ -46,12 +46,12 @@ export const phoneExample = {
 export const lineExample = {
   line: {
     pattern: "%%_extension_%%",
-    routePartitionName: "",
+    routePartitionName: "INTERNAL-PT",
     alertingName: "%%_firstName_%% %%_lastName_%%",
     asciiAlertingName: "%%_firstName_%% %%_lastName_%%",
     description: "%%_firstName_%% %%_lastName_%%",
     _data: {
-      extension: "1001",
+      extension: "13758084002", // Note: Use plain numbers without + or \ characters
       firstName: "Tom",
       lastName: "Smith"
     }
