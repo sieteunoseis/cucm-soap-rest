@@ -225,11 +225,12 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
         tags = {};
       }
 
-      // Apply any filters from query parameters
+      // Apply any filters from query parameters but maintain the original structure
       if (tags.searchCriteria) {
-        // Create a fresh tags object with just the searchCriteria
-        const searchCriteria = { ...tags.searchCriteria };
-        tags = { searchCriteria };
+        // Save a reference to other important properties
+        const returnedTags = tags.returnedTags;
+        const skip = tags.skip;
+        const first = tags.first;
         
         // First apply URL parameter/value if provided
         if (paramType && paramValue) {
@@ -276,6 +277,18 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
             }
           });
         }
+        
+        // Ensure the structure maintains all required properties
+        // Create a new tags object that keeps all the original properties
+        const updatedTags = {
+          searchCriteria: tags.searchCriteria,
+          returnedTags: returnedTags || {},
+          skip: skip || "",
+          first: first || ""
+        };
+        
+        console.log(`Final structure for ${method}:`, JSON.stringify(updatedTags, null, 2));
+        tags = updatedTags;
       } else {
         // No searchCriteria available - create an empty tags object
         tags = {};
