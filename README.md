@@ -8,6 +8,7 @@ A dynamic REST API built with Express and TypeScript that provides a RESTful int
 - **Intelligent HTTP Method Mapping**: Maps AXL operations to HTTP methods (e.g., `getPhone` → GET, `addPhone` → PUT)
 - **Swagger Documentation**: Auto-generated API documentation with interactive UI
 - **AXL Operation Support**: Supports all AXL operations available in your CUCM version
+- **Template Variables**: Support for JSON template variables using the `%%_variable_%%` syntax with `_data` field
 
 ## Development
 
@@ -37,6 +38,7 @@ CUCM_USER=your-username
 CUCM_PASS=your-password
 CUCM_VERSION=14.0  # AXL API version
 PORT=3000
+dataContainerIdentifierTails=_data  # Identifier for json-variables template fields
 ```
 
 ### Development Commands
@@ -62,6 +64,37 @@ The API documentation is available at:
 
 - `/api-explorer` - Interactive API documentation with Swagger UI
 - `/api-docs.json` - Raw JSON documentation
+
+## Template Variables
+
+This API supports template variables in JSON payloads using the [json-variables](https://www.npmjs.com/package/json-variables) library. This allows you to define variables once and reuse them throughout your request payload.
+
+### How to Use Template Variables
+
+1. Use the `%%_variable_%%` syntax in any string value where you want to insert a variable
+2. Add a `_data` object containing your variable values
+3. The API will automatically process and replace the variables before sending to CUCM
+
+### Example
+
+```json
+{
+  "line": {
+    "pattern": "%%_extension_%%",
+    "routePartitionName": "",
+    "alertingName": "%%_firstName_%% %%_lastName_%%",
+    "asciiAlertingName": "%%_firstName_%% %%_lastName_%%",
+    "description": "%%_firstName_%% %%_lastName_%%",
+    "_data": {
+      "extension": "1001",
+      "firstName": "Tom",
+      "lastName": "Smith"
+    }
+  }
+}
+```
+
+In this example, the payload will be processed to replace all occurrences of `%%_extension_%%`, `%%_firstName_%%`, and `%%_lastName_%%` with their respective values from the `_data` object. The `_data` field will be automatically removed before sending to the AXL API.
 
 ## License
 

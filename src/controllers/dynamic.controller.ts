@@ -6,6 +6,7 @@ import { swaggerSpec } from "../utils/api-explorer";
 import fs from "fs";
 import path from "path";
 import { getExampleForResource } from "../utils/resource-examples";
+import * as jsonVariables from "json-variables";
 
 // Function to add paths to Swagger spec
 function addPathToSwagger(
@@ -451,6 +452,24 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
     }
 
     try {
+      // Check if we need to process template variables with jVar
+      const dataContainerIdentifierTails = process.env.dataContainerIdentifierTails || '_data';
+      
+      // Look for _data fields in the tags object
+      const hasDataFields = JSON.stringify(tags).includes(dataContainerIdentifierTails);
+      
+      if (hasDataFields) {
+        console.log(`Found template variables in tags, processing with jVar...`);
+        try {
+          // Process the tags with json-variables
+          tags = jsonVariables.parse(tags, { dataContainerIdentifierTails });
+          console.log(`Processed tags with jVar:`, JSON.stringify(tags, null, 2));
+        } catch (jVarError) {
+          console.error(`Error processing template variables with jVar:`, jVarError);
+          // Continue with original tags if jVar processing fails
+        }
+      }
+      
       // Execute the AXL operation
       console.log(`Executing operation ${method} with tags:`, JSON.stringify(tags, null, 2));
       const result = await axlClient.executeOperation(method, tags);
