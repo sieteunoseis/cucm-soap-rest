@@ -1,6 +1,6 @@
 {
   "name": "cucm-soap-rest",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "Dynamic REST API for Cisco AXL operations",
   "main": "dist/index.js",
   "scripts": {
