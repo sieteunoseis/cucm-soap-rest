@@ -331,7 +331,7 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
       console.log(`Request body (formatted):`, JSON.stringify(req.body, null, 2));
       
       // Check for template variables in the request
-      const dataContainerIdentifierTails = process.env.dataContainerIdentifierTails || '_data';
+      const dataContainerIdentifierTails = process.env.DATACONTAINERIDENTIFIERTAILS || '_data';
       const bodyString = JSON.stringify(req.body);
       console.log(`Request body string for template analysis (length ${bodyString.length}):`);
       console.log(bodyString);
@@ -365,7 +365,7 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
       console.log(`Request body:`, JSON.stringify(req.body, null, 2));
       
       // Check for template variables in the request body
-      const dataContainerIdentifierTails = process.env.dataContainerIdentifierTails || '_data';
+      const dataContainerIdentifierTails = process.env.DATACONTAINERIDENTIFIERTAILS || '_data';
       const bodyString = JSON.stringify(req.body);
       console.log(`Request body string for template analysis (length ${bodyString.length}):`);
       console.log(bodyString);
@@ -555,7 +555,7 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
 
     try {
       // Check if we need to process template variables
-      const dataContainerIdentifierTails = process.env.dataContainerIdentifierTails || '_data';
+      const dataContainerIdentifierTails = process.env.DATACONTAINERIDENTIFIERTAILS || '_data';
       
       // Debug the environment variable
       console.log(`Using dataContainerIdentifierTails: ${dataContainerIdentifierTails}`);

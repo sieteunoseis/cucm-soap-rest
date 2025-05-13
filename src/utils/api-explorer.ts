@@ -33,7 +33,7 @@ export const swaggerSpec: SwaggerSpec = {
   },
   servers: [
     {
-      url: '',
+      url: 'http://localhost:3000/',
       description: 'API Base URL',
     },
   ],
@@ -82,11 +82,14 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
 
   // Add an HTML block to point users to the method explorer
   options.customCssUrl = [
-    "https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css"
+    "https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css",
+    "https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css"
   ];
 
   options.customJs = [
-    "https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"
+    "https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js",
+    "https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js",
+    "https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"
   ];
 
   options.customCss += `
@@ -238,6 +241,7 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
       <meta charset="UTF-8">
       <title>Cisco AXL REST API - API Explorer</title>
       <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@4.5.0/swagger-ui.css" />
+      <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" />
       <style>
         html { box-sizing: border-box; overflow: -moz-scrollbars-vertical; overflow-y: scroll; }
         *, *:before, *:after { box-sizing: inherit; }
@@ -290,24 +294,57 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
           margin-bottom: 16px;
         }
 
-        #method-select {
-          width: 100%;
-          padding: 8px 12px;
-          font-size: 14px;
-          border: 1px solid #d9d9d9;
-          border-radius: 4px;
+        /* Select2 customization */
+        .select2-container {
           margin-bottom: 15px;
           font-family: var(--swagger-ui-font);
+          width: 100% !important; /* Force full width */
+        }
+        
+        .select2-container--classic .select2-selection--single {
+          height: 38px;
+          border: 1px solid #d9d9d9;
+          border-radius: 4px;
+          background-color: #fff;
+        }
+        
+        .select2-container--classic .select2-selection--single .select2-selection__rendered {
           color: #3b4151;
+          line-height: 38px;
+          padding-left: 12px;
+          font-size: 14px;
+        }
+        
+        .select2-container--classic .select2-selection--single .select2-selection__arrow {
+          height: 36px;
+        }
+        
+        .select2-container--classic .select2-results__option {
+          padding: 8px 12px;
+          font-size: 14px;
+          white-space: nowrap; /* Prevent line breaks in dropdown options */
+        }
+        
+        /* Make sure the dropdown is always wide enough */
+        .select2-container--classic .select2-dropdown {
+          min-width: 300px;
+          max-width: 100%;
+        }
+        
+        .select2-container--classic .select2-search--dropdown .select2-search__field {
+          border: 1px solid #d9d9d9;
+          border-radius: 4px;
+          padding: 8px 12px;
+          font-size: 14px;
         }
 
         #method-details {
-          margin-top: 20px;
+          margin-top: 5px;
           padding: 15px;
           border: 1px solid #d8dde7;
           border-radius: 4px;
           background-color: #f8f9fa;
-          display: none;
+          display: none; /* Hidden by default */
         }
 
         .method-tags {
@@ -379,20 +416,14 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
           background-color: #3a7fd5;
         }
 
-        .filter-container {
-          display: flex;
-          margin-bottom: 20px;
-          gap: 10px;
-          align-items: center;
+        /* Additional Select2 dropdown styling */
+        .select2-dropdown {
+          border-color: #d9d9d9;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
-
-        #filter-input {
-          flex: 1;
-          padding: 8px 12px;
-          border: 1px solid #d9d9d9;
-          border-radius: 4px;
-          font-size: 14px;
-          font-family: var(--swagger-ui-font);
+        
+        .select2-container--classic .select2-results__option--highlighted.select2-results__option--selectable {
+          background-color: #4990e2;
         }
       </style>
     </head>
@@ -405,14 +436,11 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
 
         <p>This explorer helps you discover available AXL methods and their required parameters. Select a method to see details.</p>
 
-        <div class="filter-container">
-          <input id="filter-input" type="text" placeholder="Filter methods by name..." />
-          <button id="filter-button">Apply Filter</button>
+        <div class="select2-container">
+          <select id="method-select" style="width: 100%;">
+            <option value="">-- Select a method --</option>
+          </select>
         </div>
-
-        <select id="method-select">
-          <option value="">-- Select a method --</option>
-        </select>
 
         <div id="method-details">
           <h3 id="selected-method">Method: <span></span></h3>
@@ -427,6 +455,8 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
 
       <script src="https://unpkg.com/swagger-ui-dist@4.5.0/swagger-ui-bundle.js"></script>
       <script src="https://unpkg.com/swagger-ui-dist@4.5.0/swagger-ui-standalone-preset.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
       <script>
         // Initialize method explorer dropdown
         window.addEventListener('load', function() {
@@ -434,79 +464,112 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
           const tagsContainer = document.getElementById('tags-json');
           const methodDetails = document.getElementById('method-details');
           const endpointUrl = document.getElementById('endpoint-url');
-          const filterInput = document.getElementById('filter-input');
-          const filterButton = document.getElementById('filter-button');
           const copyButton = document.getElementById('copy-button');
-
+          
           if (!dropdown) {
             console.error('Could not find dropdown element');
             return;
           }
 
-          // Show loading state
-          dropdown.innerHTML = '<option value="">Loading methods...</option>';
-
-          // Function to load methods with optional filter
-          function loadMethods(filter = '') {
-            const url = filter ? \`/api/debug/operations?filter=\${encodeURIComponent(filter)}\` : '/api/debug/operations';
-
-            // Fetch methods and populate dropdown
-            fetch(url)
-              .then(response => {
-                console.log('Response status:', response.status);
-                return response.json();
-              })
-              .then(data => {
-                console.log('Debug operations data:', data);
-
-                // Clear loading state
-                dropdown.innerHTML = '<option value="">-- Select a method --</option>';
-
-                if (data.operations && Array.isArray(data.operations)) {
-                  // Sort operations alphabetically
-                  data.operations.sort().forEach(operation => {
-                    const option = document.createElement('option');
-                    option.value = operation;
-                    option.textContent = operation;
-                    dropdown.appendChild(option);
-                  });
-                  console.log(\`Populated dropdown with \${data.operations.length} methods\`);
-                } else {
-                  console.error('No operations array in response:', data);
-                  dropdown.innerHTML = '<option value="">No methods available</option>';
-                }
-              })
-              .catch(error => {
-                console.error('Error fetching methods:', error);
-                dropdown.innerHTML = '<option value="">Error loading methods</option>';
-              });
+          // Check if jQuery is available
+          if (typeof jQuery === 'undefined') {
+            console.error('jQuery is required for Select2 but not loaded');
+            return;
           }
+          
+          // Initialize Select2 dropdown with loading placeholder
+          jQuery(dropdown).select2({
+            placeholder: "Loading methods...",
+            allowClear: true,
+            width: '100%', // Set width in options
+            theme: 'classic',
+            dropdownParent: jQuery('.select2-container').parent() // Ensure dropdown is properly positioned
+          });
 
-          // Initialize with all methods
-          loadMethods();
+          // Load methods from the API
+          fetch('/api/debug/operations')
+            .then(response => {
+              console.log('Response status:', response.status);
+              return response.json();
+            })
+            .then(data => {
+              console.log('Debug operations data:', data);
 
-          // Handle filter button click
-          if (filterButton && filterInput) {
-            filterButton.addEventListener('click', function() {
-              loadMethods(filterInput.value);
-            });
+              // Clear existing options
+              jQuery(dropdown).empty();
+              
+              // Add placeholder option
+              const placeholderOption = document.createElement('option');
+              placeholderOption.value = '';
+              placeholderOption.text = '-- Select a method --';
+              placeholderOption.selected = true;
+              dropdown.appendChild(placeholderOption);
 
-            // Also handle enter key in input
-            filterInput.addEventListener('keyup', function(event) {
-              if (event.key === 'Enter') {
-                loadMethods(filterInput.value);
+              if (data.operations && Array.isArray(data.operations)) {
+                // Sort operations alphabetically
+                data.operations.sort().forEach(operation => {
+                  const option = document.createElement('option');
+                  option.value = operation;
+                  option.text = operation;
+                  dropdown.appendChild(option);
+                });
+                console.log('Populated dropdown with ' + data.operations.length + ' methods');
+              } else {
+                console.error('No operations array in response:', data);
               }
+
+              // Trigger change event to update Select2
+              // No need to trigger the change event here - just refresh the control's appearance
+              jQuery(dropdown).select2('destroy').select2({
+                placeholder: "-- Select a method --",
+                allowClear: true,
+                width: '100%', 
+                theme: 'classic',
+                dropdownParent: jQuery('.select2-container').parent()
+              });
+            })
+            .catch(error => {
+              console.error('Error fetching methods:', error);
+              jQuery(dropdown).empty();
+              
+              const errorOption = document.createElement('option');
+              errorOption.value = '';
+              errorOption.text = 'Error loading methods';
+              errorOption.selected = true;
+              dropdown.appendChild(errorOption);
+              
+              // Reinitialize Select2 with error state
+              jQuery(dropdown).select2('destroy').select2({
+                placeholder: "Error loading methods",
+                allowClear: false,
+                width: '100%', 
+                theme: 'classic',
+                dropdownParent: jQuery('.select2-container').parent()
+              });
             });
-          }
 
           // We don't need to add a click handler here as we're adding it dynamically when parameters are loaded
 
           // Show/hide method details and handle parameters
-          dropdown.addEventListener('change', function() {
+          // Use both native change and Select2 change events to ensure both work
+          jQuery(dropdown).on('select2:select', function(e) {
+            console.log('Select2:select event triggered with data:', e.params.data);
+            
+            // Directly show the method details when a selection is made
+            if (methodDetails && e.params.data && e.params.data.id) {
+              methodDetails.style.display = 'block';
+              console.log('Method details box forced to display via select2:select event');
+            }
+          }).on('change', function() {
             const selectedMethod = dropdown.value;
-
+            console.log('Select2 change event triggered. Selected method:', selectedMethod);
+            
             if (methodDetails) {
+              console.log('Method details display before:', methodDetails.style.display);
               methodDetails.style.display = selectedMethod ? 'block' : 'none';
+              console.log('Method details display after:', methodDetails.style.display);
+            } else {
+              console.error('Method details element not found!');
             }
 
             if (selectedMethod) {

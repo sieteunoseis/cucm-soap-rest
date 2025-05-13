@@ -17,6 +17,7 @@ A dynamic REST API built with Express and TypeScript that provides a RESTful int
 - Node.js 14.x or higher
 - npm 6.x or higher
 - Cisco CUCM server with AXL service enabled
+- Docker (optional, for containerized deployment)
 
 ### Setup
 
@@ -56,6 +57,15 @@ npm run build
 
 # Start production server
 npm start
+
+# Build Docker image
+docker build -t cucm-soap-rest .
+
+# Run with Docker
+docker run -p 3000:3000 --env-file .env cucm-soap-rest
+
+# Run with Docker Compose
+docker-compose up
 ```
 
 ## API Documentation
@@ -165,6 +175,51 @@ curl -X 'PUT' \
   }
 }'
 ```
+
+## Docker Deployment
+
+This project includes Docker support for easy deployment. The included Dockerfile uses a multi-stage build process to create an optimized production image.
+
+### Using Docker
+
+```bash
+# Build the Docker image
+docker build -t cucm-soap-rest .
+
+# Run the container
+docker run -p 3000:3000 --env-file .env cucm-soap-rest
+```
+
+### Using Docker Compose
+
+For easier configuration management, you can use Docker Compose:
+
+```bash
+# Start the application
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop the application
+docker-compose down
+```
+
+### GitHub Actions
+
+This repository includes a GitHub Actions workflow that automatically builds and publishes a Docker image to GitHub Container Registry whenever changes are pushed to the master branch.
+
+To use the published image:
+
+```bash
+# Pull the latest image
+docker pull ghcr.io/USERNAME/cucm-soap-rest:latest
+
+# Run the container
+docker run -p 3000:3000 --env-file .env ghcr.io/USERNAME/cucm-soap-rest:latest
+```
+
+Replace `USERNAME` with your GitHub username or organization name.
 
 ## License
 
