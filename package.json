@@ -1,6 +1,6 @@
 {
   "name": "cisco-axl-dynamic-api",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Dynamic REST API for Cisco AXL operations",
   "main": "dist/index.js",
   "scripts": {
