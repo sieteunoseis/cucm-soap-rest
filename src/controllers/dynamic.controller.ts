@@ -204,9 +204,26 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
 
     // Handle different method types differently
     if (method.toLowerCase().startsWith("list")) {
-      // For list methods, we only need the searchCriteria object
+      // For list methods, we need to ensure we always use getOperationTags
       console.log(`Request query:`, req.query);
       console.log(`Request params:`, req.params);
+
+      try {
+        // Always fetch the tags structure fresh for list operations
+        console.log(`Getting fresh tags for list operation: ${method}`);
+        tags = await axlClient.getOperationTags(method);
+        
+        if (Object.keys(tags).length === 0) {
+          console.warn(`Warning: No tags returned for list operation ${method}`);
+          tags = {};
+        } else {
+          console.log(`Retrieved fresh tags structure for ${method}:`, JSON.stringify(tags, null, 2));
+        }
+      } catch (tagsError) {
+        console.warn(`Could not get operation tags for ${method}:`, tagsError);
+        // Initialize with empty tags object if we can't get the structure
+        tags = {};
+      }
 
       // Apply any filters from query parameters
       if (tags.searchCriteria) {
