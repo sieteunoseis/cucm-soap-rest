@@ -6,7 +6,23 @@ import { swaggerSpec } from "../utils/api-explorer";
 import fs from "fs";
 import path from "path";
 import { getExampleForResource } from "../utils/resource-examples";
-import * as jsonVariables from "json-variables";
+// Import json-variables with a dynamic import
+// We'll use a function to handle the async import
+let jsonVariablesModule: any = null;
+
+// Function to dynamically import json-variables
+async function getJsonVariables() {
+  if (!jsonVariablesModule) {
+    try {
+      // Dynamically import the module
+      jsonVariablesModule = await import('json-variables');
+    } catch (error) {
+      console.error('Error importing json-variables:', error);
+      throw error;
+    }
+  }
+  return jsonVariablesModule;
+}
 
 // Function to add paths to Swagger spec
 function addPathToSwagger(
@@ -452,21 +468,22 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
     }
 
     try {
-      // Check if we need to process template variables with jVar
+      // Check if we need to process template variables
       const dataContainerIdentifierTails = process.env.dataContainerIdentifierTails || '_data';
       
       // Look for _data fields in the tags object
       const hasDataFields = JSON.stringify(tags).includes(dataContainerIdentifierTails);
       
       if (hasDataFields) {
-        console.log(`Found template variables in tags, processing with jVar...`);
+        console.log(`Found template variables in tags, processing with json-variables...`);
         try {
-          // Process the tags with json-variables
-          tags = jsonVariables.parse(tags, { dataContainerIdentifierTails });
-          console.log(`Processed tags with jVar:`, JSON.stringify(tags, null, 2));
+          // Get the json-variables module and process the tags
+          const jsonVariables = await getJsonVariables();
+          tags = jsonVariables.default(tags, { dataContainerIdentifierTails });
+          console.log(`Processed tags with json-variables:`, JSON.stringify(tags, null, 2));
         } catch (jVarError) {
-          console.error(`Error processing template variables with jVar:`, jVarError);
-          // Continue with original tags if jVar processing fails
+          console.error(`Error processing template variables with json-variables:`, jVarError);
+          // Continue with original tags if json-variables processing fails
         }
       }
       
