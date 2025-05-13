@@ -6,127 +6,8 @@ import { swaggerSpec } from "../utils/api-explorer";
 import fs from "fs";
 import path from "path";
 import { getExampleForResource } from "../utils/resource-examples";
-// Custom function to process template variables without external dependencies
-function processTemplateVariables(obj: any, dataContainerIdentifierTails: string = '_data'): any {
-  console.log(`Starting template variable processing with identifier: ${dataContainerIdentifierTails}`);
-  
-  // Deep clone the object to avoid modifying the original
-  // const result = JSON.parse(JSON.stringify(obj));
-  const result = obj;
-  
-  // Find all _data containers in the object
-  const dataContainers: { container: any, path: string[] }[] = [];
-  
-  // Function to recursively search for _data containers
-  function findDataContainers(currentObj: any, path: string[] = []) {
-    if (!currentObj || typeof currentObj !== 'object') return;
-    
-    // Check if this object is a data container
-    if (Object.prototype.hasOwnProperty.call(currentObj, dataContainerIdentifierTails)) {
-      console.log(`Found data container at path: ${path.join('.')}`);
-      dataContainers.push({ 
-        container: currentObj,
-        path: [...path]
-      });
-    }
-    
-    // Recursively search in all properties
-    for (const key in currentObj) {
-      if (Object.prototype.hasOwnProperty.call(currentObj, key)) {
-        findDataContainers(currentObj[key], [...path, key]);
-      }
-    }
-  }
-  
-  // Start the search
-  findDataContainers(result);
-  console.log(`Found ${dataContainers.length} data containers to process`);
-  
-  // Process each data container
-  for (const { container, path } of dataContainers) {
-    const dataValues = container[dataContainerIdentifierTails];
-    const parentContainer = container;
-    
-    // Log the data container processing
-    console.log(`Processing data container at path: ${path.join('.')}`);
-    
-    // Process each string value in the parent container
-    processContainerValues(parentContainer, dataValues);
-    
-    // Remove the data container
-    delete parentContainer[dataContainerIdentifierTails];
-  }
-  
-  return result;
-}
-
-// Process string values in a container, replacing template markers
-function processContainerValues(container: any, dataValues: any) {
-  // Skip processing if container or dataValues are not objects
-  if (!container || typeof container !== 'object' || !dataValues || typeof dataValues !== 'object') {
-    console.log(`Skipping container processing: container or dataValues is not an object`);
-    return;
-  }
-  
-  // Process each key in the container
-  for (const key in container) {
-    if (Object.prototype.hasOwnProperty.call(container, key)) {
-      const value = container[key];
-      
-      // Skip the data container itself
-      if (key === '_data') continue;
-      
-      // If value is a string, process template variables
-      if (typeof value === 'string') {
-        // Check if this string contains template markers
-        if (value.includes('%%_')) {
-          console.log(`Processing template markers in ${key}: "${value}"`);
-          const processed = processStringValue(value, dataValues);
-          
-          // Log the results
-          if (processed !== value) {
-            console.log(`Replaced template markers in ${key}: "${value}" -> "${processed}"`);
-          }
-          
-          container[key] = processed;
-        }
-      } 
-      // If value is an object, recursively process it
-      else if (value && typeof value === 'object') {
-        processContainerValues(value, dataValues);
-      }
-    }
-  }
-}
-
-// Process a string value, replacing all template markers
-function processStringValue(value: string, dataValues: any): string {
-  // Replace all occurrences of %%_variable_%% with the corresponding value
-  return value.replace(/%%_([^%]+)_%%/g, (match, variableName) => {
-    // Check if the variable exists
-    if (dataValues[variableName] !== undefined) {
-      // Get the replacement value
-      let replacement = dataValues[variableName];
-      
-      // Parse and fix escaped characters 
-      if (typeof replacement === 'string' && replacement.includes('\\')) {
-        console.log(`Processing escaped string: "${replacement}"`);
-        
-        // Handle escaped characters by replacing double backslashes with single backslashes
-        const originalReplacement = replacement;
-        replacement = replacement.replace(/\\\\/g, '\\');
-        if (replacement !== originalReplacement) {
-          console.log(`Replaced double backslashes: "${originalReplacement}" -> "${replacement}"`);
-        }
-      }
-      
-      return replacement;
-    }
-    
-    // Keep the original marker if variable not found
-    return match;
-  });
-}
+import { processTemplateVariables, hasTemplateVariables } from "../utils/template-processor";
+import { generatePathDescription, generateExamples, generateSummary, generateTags } from "../utils/swagger-helpers";
 
 // Function to add paths to Swagger spec
 function addPathToSwagger(
@@ -168,16 +49,25 @@ function addPathToSwagger(
   const resourceTag = getResourceTagFromMethod(method);
 
   // Add request body for non-GET methods with examples
-  if (httpMethod.toLowerCase() !== 'get' && httpMethod.toLowerCase() !== 'delete') {
+  if (httpMethod.toLowerCase() !== 'get') {
+    // Generate examples using our utility function
+    // Pass the method name for special handling of apply operations
+    const examples = generateExamples(httpMethod, resourceTag, method);
+    
+    // Delete operations may have a body, but it's not required
+    // Apply operations should also have optional body
+    const isRequired = !['delete', 'post'].includes(httpMethod.toLowerCase()) || 
+                     !(method && method.toLowerCase().startsWith('apply'));
+    
     requestBody = {
       description: 'Request payload for the operation',
-      required: true,
+      required: isRequired,
       content: {
         'application/json': {
           schema: {
             type: 'object'
           },
-          examples: getExampleForResource(path.split('/')[3] || '', httpMethod.toLowerCase())
+          examples: examples
         }
       }
     };
@@ -188,38 +78,20 @@ function addPathToSwagger(
     swaggerSpec.paths[path] = {};
   }
 
-  // Add notes about case-sensitive handling
-  let pathDescription = httpMethod.toLowerCase() === 'get' && parameters.length === 0
-    ? `${description} - Returns all available ${path.split('/')[3] || ''} resources (${method})`
-    : `${description} (${method})`;
-
-  // Add documentation notes based on HTTP method
-  if (httpMethod.toLowerCase() === 'put') {
-    pathDescription += `\n\n**IMPORTANT - Case-Sensitive Resource Names:** For add operations (PUT), you must use the exact camelCase resource wrapper.
-    For this endpoint, use \`${resourceTag}\` as the resource key (not \`${path.split('/')[3] || ''}\`).
-    For example: \`{ "${resourceTag}": { "name": "Example" } }\`
-    See the examples below for proper request structure.`;
-  }
-  
-  // For PATCH methods, add direct parameters note
-  if (httpMethod.toLowerCase() === 'patch') {
-    pathDescription += `\n\n**Direct Parameter Format:** For update operations (PATCH), provide parameters directly without a resource wrapper.
-    For example: \`{ "name": "Example", "description": "Updated description" }\`
-    If using a URL parameter (like uuid or name), it will be added automatically.
-    See the examples below for proper request structure.`;
-  }
+  // Generate path description using the utility function
+  const pathDescription = generatePathDescription(
+    httpMethod, 
+    method, 
+    path, 
+    description, 
+    parameters.length > 0
+  );
 
   // Add the operation details
   swaggerSpec.paths[path][httpMethod.toLowerCase()] = {
-    summary: `${httpMethod.toUpperCase()} ${path} (${method})`,
+    summary: generateSummary(httpMethod, path, method),
     description: pathDescription,
-    tags: [
-      method.toLowerCase().startsWith('apply') ? 'apply' :
-      method.toLowerCase().startsWith('reset') ? 'reset' :
-      method.toLowerCase().startsWith('do') ? 'do' :
-      method.toLowerCase().startsWith('restart') ? 'restart' :
-      (path.split('/')[3] || 'axl')
-    ], // Group apply*, reset*, do*, and restart* endpoints together, otherwise use the URL path resource name as the tag
+    tags: generateTags(method, path),
     parameters: parameters.length > 0 ? parameters : undefined,
     requestBody: requestBody,
     responses: {
@@ -547,57 +419,121 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
       }
     } else if (method.toLowerCase().startsWith("remove") || method.toLowerCase().startsWith("delete")) {
       // For delete methods, we need the appropriate identifier
-      if (!paramValue) {
+      // Check if we have URL parameters
+      if (paramValue) {
+        console.log(`Using URL parameter ${paramType}=${paramValue} for ${method}`);
+        
+        // Use the specific parameter type if available
+        if (paramType) {
+          // Add the parameter to existing tags
+          tags[paramType] = paramValue;
+        } else {
+          // Use uuid as the default parameter type
+          console.log(`No parameter type specified, defaulting to uuid`);
+          tags.uuid = paramValue;
+        }
+      } 
+      // If no URL parameters, check if body contains an identifier
+      else if (req.body) {
+        console.log(`Checking request body for identifiers: ${JSON.stringify(req.body)}`);
+        
+        // Check if any identifiers are in the body
+        const hasName = req.body.name && req.body.name !== '';
+        const hasUuid = req.body.uuid && req.body.uuid !== '';
+        
+        if (hasName) {
+          console.log(`Using name=${req.body.name} from request body`);
+          tags.name = req.body.name;
+        } else if (hasUuid) {
+          console.log(`Using uuid=${req.body.uuid} from request body`);
+          tags.uuid = req.body.uuid;
+        } else {
+          // No identifiers found
+          return res.status(400).json({
+            error: "BAD_REQUEST",
+            message: "An identifier (name or uuid) is required in either URL parameters or request body for delete operations",
+            statusCode: 400,
+          });
+        }
+      } else {
+        // No parameters provided
         return res.status(400).json({
           error: "BAD_REQUEST",
-          message: "An identifier (id, name, uuid, or pattern) is required for delete operations",
+          message: "An identifier (name or uuid) is required for delete operations",
           statusCode: 400,
         });
       }
-
-      // Use the specific parameter type if available
-      if (paramType) {
-        // Add the parameter to existing tags
-        tags[paramType] = paramValue;
-      } else {
-        // Use uuid as the default parameter type
-        console.log(`No parameter type specified, defaulting to uuid`);
-        tags.uuid = paramValue;
-      }
-    } else if (method.toLowerCase().startsWith('apply')) {
-      // Special handling for all apply* operations which have a unique structure
+    } else if (method.toLowerCase().startsWith('apply') || 
+               method.toLowerCase().startsWith('reset') || 
+               method.toLowerCase().startsWith('do')) {
+      // Special handling for apply/reset/do operations - we want a simple format
       console.log(`Special handling for ${method} operation`);
       console.log(`Request body for ${method}:`, JSON.stringify(req.body, null, 2));
 
-      // Extract the resource name from the method (e.g., 'phone' from 'applyPhone')
-      const resourceName = method.substring(5).toLowerCase(); // Remove 'apply' prefix
-      const firstChar = method.charAt(5); // First character after 'apply'
-      const camelCaseResource = firstChar.toLowerCase() + method.substring(6);
+      // Get the operation type for error messages
+      const operationType = method.toLowerCase().startsWith('apply') ? 'apply' : 
+                          method.toLowerCase().startsWith('reset') ? 'reset' : 'do';
 
-      // For apply* operations, always create a properly structured request
-      const requestBody = req.body || {};
+      // Create the tags object - don't use any wrappers
+      tags = {};
 
-      // Handle multiple formats gracefully
-      if (requestBody[method]) {
-        // Body already has proper wrapper (e.g., applyPhone: {...})
-        tags = requestBody;
-        console.log(`Using existing ${method} wrapper`);
-      } else if (requestBody[camelCaseResource]) {
-        // Body has inner resource object (e.g., phone: {...})
-        tags = {
-          [method]: {
-            [camelCaseResource]: requestBody[camelCaseResource]
+      // Check if we have URL parameters first
+      if (paramValue) {
+        console.log(`Using URL parameter ${paramType}=${paramValue} for ${method}`);
+        
+        // Create basic request with parameter
+        if (paramType) {
+          // Use the parameter type from URL
+          tags[paramType] = paramValue;
+        } else {
+          // Default to uuid
+          tags.uuid = paramValue;
+        }
+      }
+      // Otherwise, check the request body for simple format
+      else if (req.body) {
+        console.log(`Checking request body for ${method}`);
+        
+        // Check for direct name/uuid properties only (strict format)
+        const hasName = req.body.name && req.body.name !== '';
+        const hasUuid = req.body.uuid && req.body.uuid !== '';
+        
+        if (hasName) {
+          tags.name = req.body.name;
+        }
+        
+        if (hasUuid) {
+          tags.uuid = req.body.uuid;
+        }
+        
+        // Copy any additional properties from body to tags
+        // This handles parameters like doDeviceLogin's loginDuration
+        Object.keys(req.body).forEach(key => {
+          if (key !== 'name' && key !== 'uuid') {
+            tags[key] = req.body[key];
           }
-        };
-        console.log(`Using existing ${camelCaseResource} object with ${method} wrapper`);
+        });
+        
+        // For 'do' operations, allow empty body attempts - the backend will validate
+        // Only enforce identifier requirement for apply and reset operations
+        if (!hasName && !hasUuid && 
+            !method.toLowerCase().startsWith('do')) {
+          // No valid identifiers found and not a 'do' operation
+          return res.status(400).json({
+            error: "BAD_REQUEST",
+            message: `An identifier (name or uuid) is required for ${operationType} operations at the root level: { "name": "Example-Name", "uuid": "" }`,
+            statusCode: 400,
+          });
+        }
+        
+        console.log(`Identifiers for ${method}:`, tags);
       } else {
-        // Assume entire body is the resource object
-        tags = {
-          [method]: {
-            [camelCaseResource]: requestBody
-          }
-        };
-        console.log(`Wrapping entire body as ${camelCaseResource} object in ${method}`);
+        // No parameters provided
+        return res.status(400).json({
+          error: "BAD_REQUEST",
+          message: `An identifier (name or uuid) is required for ${operationType} operations`,
+          statusCode: 400,
+        });
       }
 
       console.log(`Final ${method} tags:`, JSON.stringify(tags, null, 2));
@@ -1047,41 +983,29 @@ async function updateSwaggerFile(operations: string[]) {
     operations.forEach((operation) => {
       const { httpMethod, route } = mapAxlMethodToHttp(operation);
       const routePath = `/api/axl/${route}`;
+      const resourceTag = getResourceTagFromMethod(operation);
 
       // Add to swagger paths
       if (!swaggerFile.paths[routePath]) {
         swaggerFile.paths[routePath] = {};
       }
 
-      // Add method details
-      // Prepare description with case-insensitive notes for PUT/PATCH
-      let pathDescription = httpMethod === "get" 
-        ? `Returns all available ${route} resources (${operation})` 
+      // Generate description using utility function
+      const baseDescription = httpMethod === "get" 
+        ? `Returns all available ${route} resources` 
         : `Execute ${operation} AXL operation`;
-
-      // Add documentation notes based on HTTP method
-      if (httpMethod.toLowerCase() === "put") {
-        // Extract the properly cased tag for this operation
-        const resourceTag = getResourceTagFromMethod(operation);
-
-        pathDescription += `\n\n**IMPORTANT - Case-Sensitive Resource Names:** For add operations (PUT), you must use the exact camelCase resource wrapper.
-        For this endpoint, use \`${resourceTag}\` as the resource key (not \`${route}\`).
-        For example: \`{ "${resourceTag}": { "name": "Example" } }\`
-        See the examples below for proper request structure.`;
-      }
       
-      // For PATCH methods, add direct parameters note
-      if (httpMethod.toLowerCase() === "patch") {
-        pathDescription += `\n\n**Direct Parameter Format:** For update operations (PATCH), provide parameters directly without a resource wrapper.
-        For example: \`{ "name": "Example", "description": "Updated description" }\`
-        If using a URL parameter (like uuid or name), it will be added automatically.
-        See the examples below for proper request structure.`;
-      }
+      const pathDescription = generatePathDescription(
+        httpMethod,
+        operation,
+        routePath,
+        baseDescription
+      );
 
       swaggerFile.paths[routePath][httpMethod] = {
-        summary: `${httpMethod.toUpperCase()} ${routePath} (${operation})`,
+        summary: generateSummary(httpMethod, routePath, operation),
         description: pathDescription,
-        tags: ["axl"],
+        tags: generateTags(operation, routePath),
         responses: {
           "200": {
             description: "Successful operation",
@@ -1108,55 +1032,17 @@ async function updateSwaggerFile(operations: string[]) {
 
       // If it's a non-GET method, add a request body with examples
       if (httpMethod !== "get") {
-        // Create examples for specific resources or a generic example
-        let examples;
-
-        // Extract proper camelCase resource name
-        const resourceTag = getResourceTagFromMethod(operation);
-
-        if (httpMethod.toLowerCase() === "put") {
-          // Examples for PUT operations (add) - requires resource wrapper
-          examples = {
-            example1: {
-              summary: "With resource wrapper (required)",
-              description: "For add operations, you must use the resource wrapper with exact camelCase",
-              value: {
-                // Use the proper camelCase resource tag
-                [resourceTag]: {
-                  name: "Example-Name",
-                  description: "Example created using the REST API",
-                },
-              },
-            }
-          };
-        } else if (httpMethod.toLowerCase() === "patch") {
-          // Examples for PATCH operations (update) - direct parameters
-          examples = {
-            example1: {
-              summary: "Direct parameters (no wrapper)",
-              description: "For update operations, provide parameters directly without a resource wrapper",
-              value: {
-                name: "Example-Name",
-                description: "Example created using the REST API",
-                uuid: "12345678-1234-1234-1234-123456789012", // For update operations
-              },
-            }
-          };
-        } else {
-          // Generic examples for other methods
-          examples = {
-            example1: {
-              summary: "Example request body",
-              value: {
-                name: "Example-Name",
-                description: "Example created using the REST API",
-              },
-            }
-          };
-        }
+        // Create examples using utility function
+        // Pass the operation name for special handling of apply operations
+        const examples = generateExamples(httpMethod, resourceTag, operation);
+        
+        // Delete operations may have a body, but it's not required
+        // Apply operations should also have optional body
+        const isRequired = !['delete', 'post'].includes(httpMethod.toLowerCase()) || 
+                          !(operation && operation.toLowerCase().startsWith('apply'));
 
         swaggerFile.paths[routePath][httpMethod].requestBody = {
-          required: true,
+          required: isRequired,
           content: {
             "application/json": {
               schema: {
@@ -1177,32 +1063,21 @@ async function updateSwaggerFile(operations: string[]) {
           swaggerFile.paths[paramPath] = {};
         }
 
-        // Prepare description with case-insensitive notes for PUT/PATCH
-        let paramPathDescription = `Filter ${route} resources by specified parameter type and value (${operation})`;
-
-        // Add documentation notes based on HTTP method
-        if (httpMethod.toLowerCase() === "put") {
-          // Extract the properly cased tag for this operation
-          const resourceTag = getResourceTagFromMethod(operation);
-
-          paramPathDescription += `\n\n**IMPORTANT - Case-Sensitive Resource Names:** For add operations (PUT), you must use the exact camelCase resource wrapper.
-          For this endpoint, use \`${resourceTag}\` as the resource key (not \`${route}\`).
-          For example: \`{ "${resourceTag}": { "name": "Example" } }\`
-          See the examples below for proper request structure.`;
-        }
+        // Generate description for parameter path
+        const paramBaseDescription = `Filter ${route} resources by specified parameter type and value`;
         
-        // For PATCH methods, add direct parameters note
-        if (httpMethod.toLowerCase() === "patch") {
-          paramPathDescription += `\n\n**Direct Parameter Format:** For update operations (PATCH), provide parameters directly without a resource wrapper.
-          For example: \`{ "name": "Example", "description": "Updated description" }\`
-          If using a URL parameter (like uuid or name), it will be added automatically.
-          See the examples below for proper request structure.`;
-        }
+        const paramPathDescription = generatePathDescription(
+          httpMethod,
+          operation,
+          paramPath,
+          paramBaseDescription,
+          true // parameters = true
+        );
 
         swaggerFile.paths[paramPath][httpMethod] = {
-          summary: `${httpMethod.toUpperCase()} ${paramPath} (${operation})`,
+          summary: generateSummary(httpMethod, paramPath, operation),
           description: paramPathDescription,
-          tags: ["axl"],
+          tags: generateTags(operation, routePath),
           parameters: [
             {
               name: "parameter",

@@ -94,7 +94,7 @@ This API supports template variables in JSON payloads using the [json-variables]
 }
 ```
 
-If you need to use a pattern with a plus sign (like an E.164 number format), specify it directly in the _data object. The JSON variables processor will handle it correctly:
+If you need to use a pattern with a plus sign (like an E.164 number format), use the backslash-escaped format in the _data object. The template processor will handle it correctly:
 
 ```json
 {
@@ -105,7 +105,7 @@ If you need to use a pattern with a plus sign (like an E.164 number format), spe
     "asciiAlertingName": "%%_firstName_%% %%_lastName_%%",
     "description": "%%_firstName_%% %%_lastName_%%",
     "_data": {
-      "extension": "+13758084002",
+      "extension": "\\+13758084002",
       "firstName": "Tom",
       "lastName": "Smith"
     }
@@ -117,10 +117,10 @@ In this example, the payload will be processed to replace all occurrences of `%%
 
 ### Important Notes
 
-1. When using template variables, ensure your JSON is properly formatted and doesn't contain invalid escape sequences
-2. For phone numbers, use plain strings without special characters like `+` or backslashes
+1. When using template variables, ensure your JSON is properly formatted
+2. For phone numbers with + signs (E.164 format), use a backslash-escaped format like `\\+13758084002`
 3. Use valid values that match your CUCM configuration (like partition names)
-4. Avoid using characters that require JSON escaping in the template variables themselves
+4. The template processor will handle JSON escaping and properly format the output for CUCM
 
 ### Curl Example
 
@@ -145,7 +145,7 @@ curl -X 'PUT' \
   }
 }'
 
-# Example with E.164 format (including plus sign)
+# Example with E.164 format (including escaped plus sign)
 curl -X 'PUT' \
   'http://localhost:3000/api/axl/line' \
   -H 'accept: application/json' \
@@ -158,7 +158,7 @@ curl -X 'PUT' \
     "asciiAlertingName": "%%_firstName_%% %%_lastName_%%",
     "description": "%%_firstName_%% %%_lastName_%%",
     "_data": {
-      "extension": "+13758084002",
+      "extension": "\\+13758084002",
       "firstName": "Tom",
       "lastName": "Smith"
     }
