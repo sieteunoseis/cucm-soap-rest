@@ -328,10 +328,21 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
       // Get the actual camelCase resource tag name (e.g., "routePartition" not "routepartition")
       const resourceTag = getResourceTagFromMethod(method);
 
-      // Debug logs to see what's happening
+      // Enhanced debug logs
       console.log(`Add operation: ${method}, Resource path: ${resourcePath}, Resource tag: ${resourceTag}`);
-      console.log(`Request body:`, JSON.stringify(req.body, null, 2));
-
+      console.log(`Request body (raw):`, req.body);
+      console.log(`Request body (formatted):`, JSON.stringify(req.body, null, 2));
+      
+      // Check for template variables in the request
+      const dataContainerIdentifierTails = process.env.dataContainerIdentifierTails || '_data';
+      const bodyString = JSON.stringify(req.body);
+      console.log(`Request body string for template analysis (length ${bodyString.length}):`);
+      console.log(bodyString);
+      
+      const hasDataFields = bodyString.includes(`"${dataContainerIdentifierTails}"`) || 
+                           bodyString.includes(`"_data":`);
+      console.log(`Does request body have template variables? ${hasDataFields}`);
+      
       // Check if the body already has the resource tag name as a key with exact case match
       if (req.body && req.body[resourceTag]) {
         console.log(`Request body already has ${resourceTag} as a tag (exact match)`);
@@ -471,20 +482,45 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
       // Check if we need to process template variables
       const dataContainerIdentifierTails = process.env.dataContainerIdentifierTails || '_data';
       
-      // Look for _data fields in the tags object
-      const hasDataFields = JSON.stringify(tags).includes(dataContainerIdentifierTails);
+      // Debug the environment variable
+      console.log(`Using dataContainerIdentifierTails: ${dataContainerIdentifierTails}`);
       
-      if (hasDataFields) {
+      // Stringify the tags for analysis
+      const tagsString = JSON.stringify(tags);
+      console.log(`Tags string for analysis (length ${tagsString.length}):`);
+      console.log(tagsString);
+      
+      // Look for _data fields in the tags object with more specific search
+      const hasDataFields = tagsString.includes(`"${dataContainerIdentifierTails}"`);
+      console.log(`Does tags include "${dataContainerIdentifierTails}"? ${hasDataFields}`);
+      
+      // Additional check with the direct key path
+      const hasFieldsAlt = tagsString.includes(`"_data":`);
+      console.log(`Does tags include "_data:" specifically? ${hasFieldsAlt}`);
+      
+      if (hasDataFields || hasFieldsAlt) {
         console.log(`Found template variables in tags, processing with json-variables...`);
         try {
           // Get the json-variables module and process the tags
           const jsonVariables = await getJsonVariables();
-          tags = jsonVariables.default(tags, { dataContainerIdentifierTails });
-          console.log(`Processed tags with json-variables:`, JSON.stringify(tags, null, 2));
+          console.log(`Successfully imported json-variables module:`, jsonVariables);
+          
+          // Log the structure of jsonVariables to see what's available
+          console.log(`JSON Variables module structure:`, Object.keys(jsonVariables));
+          
+          // Try to use the module to process the tags
+          const processedTags = jsonVariables.default(tags, { dataContainerIdentifierTails });
+          console.log(`Processed tags with json-variables:`, JSON.stringify(processedTags, null, 2));
+          
+          // Assign the processed tags back to tags
+          tags = processedTags;
         } catch (jVarError) {
           console.error(`Error processing template variables with json-variables:`, jVarError);
+          console.error(`Error details:`, jVarError.stack);
           // Continue with original tags if json-variables processing fails
         }
+      } else {
+        console.log(`No template variables found in tags, skipping json-variables processing.`);
       }
       
       // Execute the AXL operation
