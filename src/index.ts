@@ -32,8 +32,18 @@ app.use(
     crossOriginEmbedderPolicy: false,
     crossOriginOpenerPolicy: false,
     crossOriginResourcePolicy: { policy: 'cross-origin' },
+    originAgentCluster: false,
   })
 );
+
+// Remove headers that require secure contexts when running over HTTP
+app.use((req, res, next) => {
+  // Check if we're in production and running over HTTP
+  if (process.env.NODE_ENV === 'production' && !req.secure) {
+    res.removeHeader('Cross-Origin-Opener-Policy');
+  }
+  next();
+});
 
 // Enable CORS
 app.use(cors());
