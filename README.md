@@ -47,6 +47,7 @@ npm install
 
 # Start development server with hot-reloading
 npm run dev
+# NOTE FOR CLAUDE: Do not run npm run dev as it's already running in the background
 
 # Build for production
 npm run build

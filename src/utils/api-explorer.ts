@@ -156,10 +156,52 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
       dropdown.addEventListener('change', function() {
         const selectedMethod = dropdown.value;
         methodDetails.style.display = selectedMethod ? 'block' : 'none';
-        
+
         if (selectedMethod) {
           document.querySelector('#selected-method span').textContent = selectedMethod;
-          
+
+          // Generate endpoint URL based on the method type
+          const methodLower = selectedMethod.toLowerCase();
+          let httpMethod = 'POST';
+          let resourcePath = '';
+          let prefix = '';
+
+          // Determine HTTP method based on prefix
+          if (methodLower.startsWith('get') || methodLower.startsWith('list')) {
+            httpMethod = 'GET';
+            prefix = methodLower.startsWith('get') ? 'get' : 'list';
+          } else if (methodLower.startsWith('add')) {
+            httpMethod = 'PUT';
+            prefix = 'add';
+          } else if (methodLower.startsWith('update')) {
+            httpMethod = 'PATCH';
+            prefix = 'update';
+          } else if (methodLower.startsWith('remove') || methodLower.startsWith('delete')) {
+            httpMethod = 'DELETE';
+            prefix = methodLower.startsWith('remove') ? 'remove' : 'delete';
+          }
+
+          // Extract resource name from method
+          resourcePath = selectedMethod.substring(prefix.length);
+          resourcePath = resourcePath.charAt(0).toLowerCase() + resourcePath.slice(1);
+
+          // Format URL pattern based on method type
+          if (prefix === 'list') {
+            // For list* methods, use plural form
+            if (!resourcePath.endsWith('s')) {
+              resourcePath += 's';
+            }
+          } else if (prefix === 'get') {
+            // For get* methods, add parameter pattern
+            resourcePath += '/{parameter}/{value}';
+          }
+
+          // Set the endpoint URL display
+          const endpointEl = document.getElementById('endpoint-url');
+          if (endpointEl) {
+            endpointEl.textContent = \`\${httpMethod} /api/axl/\${resourcePath}\`;
+          }
+
           // Fetch parameters for the selected method
           fetch(\`/api/axl/methods/\${selectedMethod}/parameters\`)
             .then(response => response.json())
@@ -279,6 +321,30 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
           border-radius: 4px;
           font-size: 12px;
           line-height: 1.4;
+          position: relative;
+        }
+        
+        .copy-button {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          background-color: rgba(255, 255, 255, 0.2);
+          border: none;
+          border-radius: 4px;
+          color: white;
+          padding: 4px 8px;
+          font-size: 12px;
+          cursor: pointer;
+          transition: background-color 0.2s;
+        }
+        
+        .copy-button:hover {
+          background-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        .copy-button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
 
         .endpoint-url {
@@ -352,11 +418,10 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
           <h3 id="selected-method">Method: <span></span></h3>
           <p>Corresponding endpoint: <span class="endpoint-url" id="endpoint-url"></span></p>
           <h4>Required Parameters:</h4>
-          <div class="method-tags" id="tags-json"></div>
+          <div class="method-tags" id="tags-json">
+          </div>
         </div>
       </div>
-
-      <div style="height: 30px;"></div><!-- Spacer between Method Explorer and Swagger UI -->
 
       <div id="swagger-ui"></div>
 
@@ -371,6 +436,7 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
           const endpointUrl = document.getElementById('endpoint-url');
           const filterInput = document.getElementById('filter-input');
           const filterButton = document.getElementById('filter-button');
+          const copyButton = document.getElementById('copy-button');
 
           if (!dropdown) {
             console.error('Could not find dropdown element');
@@ -433,6 +499,8 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
             });
           }
 
+          // We don't need to add a click handler here as we're adding it dynamically when parameters are loaded
+
           // Show/hide method details and handle parameters
           dropdown.addEventListener('change', function() {
             const selectedMethod = dropdown.value;
@@ -460,18 +528,34 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
 
               let httpMethod = 'POST'; // Default
               let resourcePath = selectedMethod.toLowerCase();
+              let prefix = '';
 
               // Extract method type and resource
-              for (const prefix in httpMethodMap) {
-                if (selectedMethod.toLowerCase().startsWith(prefix)) {
-                  httpMethod = httpMethodMap[prefix];
-                  resourcePath = selectedMethod.substring(prefix.length);
+              for (const p in httpMethodMap) {
+                if (selectedMethod.toLowerCase().startsWith(p)) {
+                  httpMethod = httpMethodMap[p];
+                  prefix = p;
+                  resourcePath = selectedMethod.substring(p.length);
                   break;
                 }
               }
 
-              // Make resource path lowercase for URL
-              resourcePath = resourcePath.charAt(0).toLowerCase() + resourcePath.slice(1);
+              // Format resource path based on the operation type
+              if (prefix === 'list') {
+                // For list* methods, use plural form for the resource
+                resourcePath = resourcePath.charAt(0).toLowerCase() + resourcePath.slice(1);
+                // Make plural if not already ending with 's'
+                if (!resourcePath.endsWith('s')) {
+                  resourcePath += 's';
+                }
+              } else if (prefix === 'get') {
+                // For get* methods, use singular form with parameter placeholders
+                resourcePath = resourcePath.charAt(0).toLowerCase() + resourcePath.slice(1);
+                resourcePath += '/{parameter}/{value}';
+              } else {
+                // For other methods, just use the resource name
+                resourcePath = resourcePath.charAt(0).toLowerCase() + resourcePath.slice(1);
+              }
 
               // Update endpoint URL
               if (endpointUrl) {
@@ -483,18 +567,78 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
                 .then(response => response.json())
                 .then(data => {
                   if (tagsContainer) {
-                    tagsContainer.innerHTML = '';
-                    if (data.parameters) {
-                      tagsContainer.textContent = JSON.stringify(data.parameters, null, 2);
-                    } else {
-                      tagsContainer.textContent = 'No parameters available';
+                    // Clear everything except the copy button
+                    while (tagsContainer.firstChild) {
+                      tagsContainer.removeChild(tagsContainer.firstChild);
                     }
+                    
+                    // Add back the copy button
+                    const copyButton = document.createElement('button');
+                    copyButton.className = 'copy-button';
+                    copyButton.id = 'copy-button';
+                    copyButton.textContent = 'Copy';
+                    tagsContainer.appendChild(copyButton);
+                    
+                    // Create the parameters content
+                    const parametersText = data.parameters && Object.keys(data.parameters).length > 0
+                        ? JSON.stringify(data.parameters, null, 2)
+                        : 'No parameters available';
+                    
+                    // Add as text node
+                    const text = document.createTextNode(parametersText);
+                    tagsContainer.appendChild(text);
+                    
+                    // Disable copy button if no parameters
+                    if (parametersText === 'No parameters available') {
+                      copyButton.disabled = true;
+                    }
+                    
+                    // Set up the copy button event listener
+                    copyButton.addEventListener('click', function() {
+                      const textToCopy = data.parameters && Object.keys(data.parameters).length > 0
+                        ? JSON.stringify(data.parameters, null, 2)
+                        : '';
+                      
+                      if (!textToCopy) {
+                        return; // Don't try to copy if there's nothing to copy
+                      }
+                      
+                      navigator.clipboard.writeText(textToCopy)
+                        .then(() => {
+                          copyButton.textContent = 'Copied!';
+                          setTimeout(() => {
+                            copyButton.textContent = 'Copy';
+                          }, 2000);
+                        })
+                        .catch(err => {
+                          console.error('Could not copy text: ', err);
+                          copyButton.textContent = 'Failed!';
+                          setTimeout(() => {
+                            copyButton.textContent = 'Copy';
+                          }, 2000);
+                        });
+                    });
                   }
                 })
                 .catch(error => {
                   console.error('Error fetching parameters:', error);
                   if (tagsContainer) {
-                    tagsContainer.textContent = 'Error loading parameters';
+                    // Clear everything except the copy button
+                    while (tagsContainer.firstChild) {
+                      tagsContainer.removeChild(tagsContainer.firstChild);
+                    }
+                    
+                    // Add back the copy button
+                    const copyButton = document.createElement('button');
+                    copyButton.className = 'copy-button';
+                    copyButton.id = 'copy-button';
+                    copyButton.textContent = 'Copy';
+                    copyButton.disabled = true; // Disable the button since there's no data to copy
+                    tagsContainer.appendChild(copyButton);
+                    
+                    // Add error message
+                    const text = document.createTextNode('Error loading parameters');
+                    tagsContainer.appendChild(text);
                   }
                 });
             }
@@ -634,7 +778,13 @@ export function addPathToSwagger( // Keeping function name for backward compatib
     swaggerSpec.paths[path][httpMethod.toLowerCase()] = {
       summary: `${httpMethod.toUpperCase()} ${path}`,
       description: pathDescription,
-      tags: [path.split('/')[3] || 'axl'], // Use the URL path resource name as the tag
+      tags: [
+        method.toLowerCase().startsWith('apply') ? 'apply' :
+        method.toLowerCase().startsWith('reset') ? 'reset' :
+        method.toLowerCase().startsWith('do') ? 'do' :
+        method.toLowerCase().startsWith('restart') ? 'restart' :
+        (path.split('/')[3] || 'axl')
+      ], // Group apply*, reset*, do*, and restart* endpoints together, otherwise use URL path resource name as tag
       parameters: parameters.length > 0 ? parameters : undefined,
       requestBody: requestBody,
       responses: {
