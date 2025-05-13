@@ -83,8 +83,24 @@ function processContainerValues(container: any, dataValues: any) {
 function processStringValue(value: string, dataValues: any): string {
   // Replace all occurrences of %%_variable_%% with the corresponding value
   return value.replace(/%%_([^%]+)_%%/g, (match, variableName) => {
-    // Return the replacement if it exists, otherwise keep the original marker
-    return dataValues[variableName] !== undefined ? dataValues[variableName] : match;
+    // Check if the variable exists
+    if (dataValues[variableName] !== undefined) {
+      // Get the replacement value
+      let replacement = dataValues[variableName];
+      
+      // Handle escaped backslashes - remove extra backslashes that might be in the JSON
+      if (typeof replacement === 'string' && replacement.includes('\\')) {
+        // Handle escaped plus signs (e.g., "\+") for phone numbers
+        replacement = replacement.replace(/\\+/g, '+');
+        // Handle other escaped characters
+        replacement = replacement.replace(/\\(.)/g, "$1");
+      }
+      
+      return replacement;
+    }
+    
+    // Keep the original marker if variable not found
+    return match;
   });
 }
 
@@ -283,14 +299,16 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
 
     // Handle different method types differently
     if (method.toLowerCase().startsWith("list")) {
-      // For list methods, we typically need a searchCriteria object
-      // tags already contains the structure from getOperationTags
-
+      // For list methods, we only need the searchCriteria object
       console.log(`Request query:`, req.query);
       console.log(`Request params:`, req.params);
 
       // Apply any filters from query parameters
       if (tags.searchCriteria) {
+        // Create a fresh tags object with just the searchCriteria
+        const searchCriteria = { ...tags.searchCriteria };
+        tags = { searchCriteria };
+        
         // First apply URL parameter/value if provided
         if (paramType && paramValue) {
           console.log(`Using parameter ${paramType}=${paramValue} for ${method}`);
@@ -336,13 +354,20 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
             }
           });
         }
+      } else {
+        // No searchCriteria available - create an empty tags object
+        tags = {};
       }
     } else if (method.toLowerCase().startsWith("get")) {
-      // For get methods, we need to pass the appropriate identifier
+      // For get methods, we only need the identifier parameters
+      // Basic GET operations don't need any tags structure other than the parameter
       if (paramValue) {
         // If we have a parameter value, use it with the correct type
+        // Create a fresh tags object for GET operations
+        tags = {};
+        
         if (paramType) {
-          // Add the parameter to the existing tags structure
+          // Add the parameter directly
           tags[paramType] = paramValue;
         } else {
           // Default to uuid as the parameter type
@@ -350,8 +375,8 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
           tags.uuid = paramValue;
         }
       } else if (Object.keys(req.query).length > 0) {
-        // Merge query parameters with the tags structure
-        tags = { ...tags, ...req.query };
+        // Use query parameters directly without merging
+        tags = { ...req.query };
       } else {
         // Generic handling for operations like getAnnunciator
         if (Object.prototype.hasOwnProperty.call(tags, 'name') && tags.name === "" &&
@@ -368,9 +393,13 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
           });
         }
 
-        // For operations with searchCriteria, set to "%" similar to list operations
+        // For operations with searchCriteria, keep only the searchCriteria
         if (tags.searchCriteria) {
           console.log(`Setting searchCriteria to % for ${method} with no parameters`);
+          // Create a fresh tags object with just the searchCriteria
+          const searchCriteria = { ...tags.searchCriteria };
+          tags = { searchCriteria };
+          
           // Get all keys from searchCriteria
           const searchCriteriaKeys = Object.keys(tags.searchCriteria);
 
@@ -386,7 +415,7 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
         }
       }
     } else if (method.toLowerCase().startsWith("add")) {
-      // For add methods, use the request body
+      // For add methods, use the request body directly
       const resourcePath = getResourceFromMethod(method);
 
       // Get the actual camelCase resource tag name (e.g., "routePartition" not "routepartition")
@@ -407,19 +436,21 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
                            bodyString.includes(`"_data":`);
       console.log(`Does request body have template variables? ${hasDataFields}`);
       
+      // Create fresh tags object for add operations - don't merge with existing tags
+      tags = {};
+      
       // Check if the body already has the resource tag name as a key with exact case match
       if (req.body && req.body[resourceTag]) {
         console.log(`Request body already has ${resourceTag} as a tag (exact match)`);
-        // Keep the existing tags structure but replace the resource tag with the request body version
-        tags = { ...tags, ...req.body };
+        // Use the request body directly without merging with existing tags
+        tags[resourceTag] = req.body[resourceTag];
       } else {
         console.log(`Wrapping body in ${resourceTag} key`);
         // Most add operations expect the data in a specific structure
-        // Keep other tags from getOperationTags but set the resource tag to the request body
         tags[resourceTag] = req.body;
       }
     } else if (method.toLowerCase().startsWith("update")) {
-      // For update methods, combine the parameter and body
+      // For update methods, use the request body directly with the proper parameter
       const resourcePath = getResourceFromMethod(method);
 
       // Get the actual camelCase resource tag name (e.g., "routePartition" not "routepartition")
@@ -428,7 +459,20 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
       // Debug logs to see what's happening
       console.log(`Update operation: ${method}, Resource path: ${resourcePath}, Resource tag: ${resourceTag}`);
       console.log(`Request body:`, JSON.stringify(req.body, null, 2));
+      
+      // Check for template variables in the request body
+      const dataContainerIdentifierTails = process.env.dataContainerIdentifierTails || '_data';
+      const bodyString = JSON.stringify(req.body);
+      console.log(`Request body string for template analysis (length ${bodyString.length}):`);
+      console.log(bodyString);
+      
+      const hasDataFields = bodyString.includes(`"${dataContainerIdentifierTails}"`) || 
+                           bodyString.includes(`"_data":`);
+      console.log(`Does request body have template variables? ${hasDataFields}`);
 
+      // Create fresh tags object for update operations - don't merge with existing tags
+      tags = {};
+      
       // Most update operations need an identifier and the resource data
       // Use the specific parameter type if available
       if (paramType && paramValue) {
@@ -436,38 +480,36 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
         if (req.body && req.body[resourceTag]) {
           console.log(`Request body already has ${resourceTag} as a tag (exact match)`);
           // Add the parameter to existing structure
-          req.body[resourceTag] = {
+          tags[resourceTag] = {
             ...req.body[resourceTag],
             [paramType]: paramValue,
           };
-          // Merge with existing tags
-          tags = { ...tags, ...req.body };
         } else {
           console.log(`Wrapping body in ${resourceTag} key and adding ${paramType} parameter`);
-          // Preserve existing tags but update the resource tag
+          // Set the resource tag to the request body with the parameter
           tags[resourceTag] = {
             ...req.body,
-            [paramType]: paramValue || req.body[paramType],
+            [paramType]: paramValue,
           };
         }
       } else {
-        // Use UUID as the standard parameter when none specified
+        // UUID is required for update operations if no parameter is provided
         if (req.body && req.body[resourceTag]) {
           console.log(`Request body already has ${resourceTag} as a tag (exact match)`);
-          // Add the UUID to existing structure
-          req.body[resourceTag] = {
-            ...req.body[resourceTag],
-            uuid: req.body.uuid,
-          };
-          // Merge with existing tags
-          tags = { ...tags, ...req.body };
+          // Check if UUID is provided
+          if (!req.body[resourceTag].uuid) {
+            console.warn(`No UUID provided for ${method} operation. This may fail.`);
+          }
+          // Use the existing structure with resource tag
+          tags[resourceTag] = req.body[resourceTag];
         } else {
-          console.log(`Wrapping body in ${resourceTag} key and adding uuid parameter`);
-          // Preserve existing tags but update the resource tag
-          tags[resourceTag] = {
-            ...req.body,
-            uuid: req.body.uuid,
-          };
+          console.log(`Wrapping body in ${resourceTag} key`);
+          // Check if UUID is provided
+          if (!req.body.uuid) {
+            console.warn(`No UUID provided for ${method} operation. This may fail.`);
+          }
+          // Set the resource tag to the request body
+          tags[resourceTag] = req.body;
         }
       }
     } else if (method.toLowerCase().startsWith("remove") || method.toLowerCase().startsWith("delete")) {
@@ -573,7 +615,6 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
           tags = processedTags;
         } catch (templateError) {
           console.error(`Error processing template variables:`, templateError);
-          console.error(`Error details:`, templateError.stack);
           // Continue with original tags if processing fails
         }
       } else {
