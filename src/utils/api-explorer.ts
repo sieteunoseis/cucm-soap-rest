@@ -33,8 +33,12 @@ export const swaggerSpec: SwaggerSpec = {
   },
   servers: [
     {
-      url: 'http://localhost:3000/',
-      description: 'API Base URL',
+      url: '/api', 
+      description: 'API Base URL (relative path)',
+    },
+    {
+      url: 'http://localhost:3000/api',
+      description: 'Local development server',
     },
   ],
   paths: {},

@@ -1,5 +1,5 @@
 services:
-  api:
+  cucm-rest-api:
     image: ghcr.io/sieteunoseis/cucm-soap-rest:latest
     ports:
       - "3000:3000"
@@ -11,6 +11,4 @@ services:
       - CUCM_VERSION=${CUCM_VERSION}
       - PORT=3000
       - DATACONTAINERIDENTIFIERTAILS=_data
-    restart: unless-stopped
-    volumes:
-      - ./.env:/usr/src/app/.env:ro
+    restart: always

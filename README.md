@@ -192,11 +192,17 @@ docker run -p 3000:3000 --env-file .env cucm-soap-rest
 
 ### Using Docker Compose
 
-For easier configuration management, you can use Docker Compose:
+For easier configuration management, you can use Docker Compose. Two compose files are provided:
+
+- `docker-compose.yml` - Uses the GitHub Container Registry image with a local `.env` file
+- `docker-compose.prod.yml` - Uses the GitHub Container Registry image with environment variables
 
 ```bash
-# Start the application
+# Start the application (development - uses local .env file)
 docker-compose up -d
+
+# Start the application (production - uses environment variables)
+docker-compose -f docker-compose.prod.yml up -d
 
 # View logs
 docker-compose logs -f
@@ -213,13 +219,20 @@ To use the published image:
 
 ```bash
 # Pull the latest image
-docker pull ghcr.io/USERNAME/cucm-soap-rest:latest
+docker pull ghcr.io/sieteunoseis/cucm-soap-rest:latest
 
-# Run the container
-docker run -p 3000:3000 --env-file .env ghcr.io/USERNAME/cucm-soap-rest:latest
+# Run the container with .env file
+docker run -p 3000:3000 --env-file .env ghcr.io/sieteunoseis/cucm-soap-rest:latest
+
+# Or run the container with environment variables
+docker run -p 3000:3000 \
+  -e CUCM_HOST=your-cucm-server \
+  -e CUCM_USER=your-username \
+  -e CUCM_PASS=your-password \
+  -e CUCM_VERSION=14.0 \
+  -e DATACONTAINERIDENTIFIERTAILS=_data \
+  ghcr.io/sieteunoseis/cucm-soap-rest:latest
 ```
-
-Replace `USERNAME` with your GitHub username or organization name.
 
 ## License
 
