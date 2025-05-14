@@ -1,5 +1,6 @@
 services:
   cucm-rest-api:
+    container_name: cucm-rest-api
     image: ghcr.io/sieteunoseis/cucm-soap-rest:latest
     environment:
       - NODE_ENV=production
@@ -9,11 +10,13 @@ services:
       - CUCM_VERSION=${CUCM_VERSION}
       - PORT=3000
       - DATACONTAINERIDENTIFIERTAILS=_data
+      - DEBUG=true
+      - USE_API_KEY=true
+      - API_KEY_NAME=x-api-key
+      - API_KEY_LOCATION=header
     restart: always
     networks:
       - kong-net
-  
-    # Kong in DB-less mode for simplicity
   kong:
     image: kong:latest
     environment:
@@ -26,8 +29,8 @@ services:
     volumes:
       - ./kong.yml:/etc/kong/kong.yml
     ports:
-      - "8000:8000"  # Kong proxy
-      - "8001:8001"  # Kong admin API (optional, can be removed in production)
+      - "8005:8000"  # Kong proxy
+      - "8006:8001"  # Kong admin API (optional, can be removed in production)
     restart: always
     networks:
       - kong-net

@@ -19,8 +19,9 @@ services:
         plugins:
           - name: key-auth
             config:
-              hide_credentials: true
+              hide_credentials: false
               key_names: ["apikey", "x-api-key"]
+              anonymous: ""
           # Optional rate limiting plugin
           - name: rate-limiting
             config:
