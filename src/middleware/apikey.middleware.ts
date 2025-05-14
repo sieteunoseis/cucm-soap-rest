@@ -1,0 +1,56 @@
+import { Request, Response, NextFunction } from 'express';
+import { debugLog } from '../utils/debug';
+
+// Configuration options from environment variables
+export const apiKeyConfig = {
+  enabled: process.env.USE_API_KEY?.toLowerCase() === 'true',
+  keyName: process.env.API_KEY_NAME || 'x-api-key',
+  location: process.env.API_KEY_LOCATION || 'header',
+  devKey: process.env.DEV_API_KEY || 'cisco-axl-rest-api-dev-key'
+};
+
+/**
+ * Middleware to verify API key if enabled
+ * This is a placeholder for actual API key validation logic
+ * In this implementation, we're just checking if the API key exists
+ * Since the actual authentication will be handled by Kong Gateway
+ */
+export function checkApiKey(req: Request, res: Response, next: NextFunction) {
+  // If API key authentication is disabled, skip this middleware
+  if (!apiKeyConfig.enabled) {
+    return next();
+  }
+
+  let apiKey: string | undefined;
+  
+  // Get API key based on configured location
+  if (apiKeyConfig.location === 'header') {
+    apiKey = req.header(apiKeyConfig.keyName);
+  } else if (apiKeyConfig.location === 'query') {
+    apiKey = req.query[apiKeyConfig.keyName] as string;
+  }
+
+  // Check if API key is provided
+  if (!apiKey) {
+    debugLog(`API key missing in ${apiKeyConfig.location}`, null, 'auth');
+    return res.status(401).json({
+      error: 'AUTHENTICATION_FAILED',
+      message: `API key is required. Please provide it in the ${apiKeyConfig.location === 'header' ? 'header' : 'query parameter'} '${apiKeyConfig.keyName}'`,
+      statusCode: 401
+    });
+  }
+
+  // Validate the API key against our development key when in direct mode
+  // In production with Kong, the gateway will handle actual validation
+  if (apiKey === apiKeyConfig.devKey) {
+    debugLog(`Valid development API key provided in ${apiKeyConfig.location}`, null, 'auth');
+    next();
+  } else {
+    debugLog(`Invalid API key provided in ${apiKeyConfig.location}`, null, 'auth');
+    return res.status(401).json({
+      error: 'AUTHENTICATION_FAILED',
+      message: 'Invalid API key provided. Please check your credentials.',
+      statusCode: 401
+    });
+  }
+}
