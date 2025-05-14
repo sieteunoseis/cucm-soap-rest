@@ -21,6 +21,16 @@ services:
             config:
               hide_credentials: true
               key_names: ["apikey", "x-api-key"]
+          # Optional rate limiting plugin
+          - name: rate-limiting
+            config:
+              minute: 60
+              hour: 1000
+              policy: local
+          # Request size limiting
+          - name: request-size-limiting
+            config:
+              allowed_payload_size: 10
 
 consumers:
   - username: api-user

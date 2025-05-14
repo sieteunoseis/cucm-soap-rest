@@ -6,6 +6,7 @@ import { getExampleForResource } from './resource-examples';
 import { getResourceTagFromMethod } from './method-mapper';
 import { packageInfo } from './version';
 import { isAuthenticated } from '../middleware/auth.middleware';
+import { apiKeyConfig } from '../middleware/apikey.middleware';
 
 // Define explicit type for Swagger spec
 interface SwaggerSpec {
@@ -41,6 +42,17 @@ export const swaggerSpec: SwaggerSpec = {
   ],
   paths: {},
   components: {
+    // Add security schemes if API key authentication is enabled
+    ...(apiKeyConfig.enabled ? {
+      securitySchemes: {
+        apiKey: {
+          type: 'apiKey',
+          name: apiKeyConfig.keyName,
+          in: apiKeyConfig.location,
+          description: `API key for authorization. Required when using Kong API Gateway. Provide your API key in the ${apiKeyConfig.location} parameter '${apiKeyConfig.keyName}'. For development, you can use: '${apiKeyConfig.devKey}'`
+        }
+      }
+    } : {}),
     schemas: {
       ErrorResponse: {
         type: 'object',
@@ -53,6 +65,14 @@ export const swaggerSpec: SwaggerSpec = {
       },
     },
   },
+  // Add global security if API key authentication is enabled
+  ...(apiKeyConfig.enabled ? {
+    security: [
+      {
+        apiKey: []
+      }
+    ]
+  } : {})
 };
 
 // Flag to track if we've already written to the debug file
@@ -158,8 +178,15 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
               <strong>CUCM User:</strong> ${process.env.CUCM_USER || 'Not configured'}
             </div>
             <div class="config-item">
-              <strong>Connection Status:</strong> <span class="${isAuthenticated ? 'status-connected' : 'status-disconnected'}">${isAuthenticated ? 'Connected' : 'Disconnected'}</span>
+              <strong>Status:</strong> <span class="${isAuthenticated ? 'status-connected' : 'status-disconnected'}">${isAuthenticated ? 'Connected' : 'Disconnected'}</span>
             </div>
+            ${apiKeyConfig.enabled ? `
+            <div class="config-item">
+              <strong>API Key Required:</strong> <span class="status-disconnected">Yes</span> (${apiKeyConfig.location}: ${apiKeyConfig.keyName})
+            </div>
+            <div class="config-item">
+              <strong>Dev API Key:</strong> <span style="font-family: monospace;">${apiKeyConfig.devKey}</span>
+            </div>` : ''}
           </div>
         \`;
         
@@ -514,9 +541,17 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
             <div style="margin-right: 30px; margin-bottom: 5px;">
               <strong>CUCM User:</strong> ${process.env.CUCM_USER || 'Not configured'}
             </div>
-            <div style="margin-bottom: 5px;">
-              <strong>Connection Status:</strong> <span style="color: ${isAuthenticated ? '#198754' : '#dc3545'}; font-weight: 500;">${isAuthenticated ? 'Connected' : 'Disconnected'}</span>
+            <div style="margin-right: 30px; margin-bottom: 5px;">
+              <strong>Status:</strong> <span style="color: ${isAuthenticated ? '#198754' : '#dc3545'}; font-weight: 500;">${isAuthenticated ? 'Connected' : 'Disconnected'}</span>
             </div>
+            ${apiKeyConfig.enabled ? `
+            <div style="margin-right: 30px; margin-bottom: 5px;">
+              <strong>API Key Required:</strong> <span style="color: #dc3545;">Yes</span> (${apiKeyConfig.location}: ${apiKeyConfig.keyName})
+            </div>
+            <div style="margin-right: 30px; margin-bottom: 5px;">
+              <strong>Dev API Key:</strong> <span style="font-family: monospace;">${apiKeyConfig.devKey}</span>
+            </div>` : ''}
+            
           </div>
         </div>
 

@@ -45,6 +45,12 @@ CUCM_VERSION=14.0  # AXL API version
 PORT=3000
 DATACONTAINERIDENTIFIERTAILS=_data  # Identifier for json-variables template fields
 DEBUG=false  # Enable/disable debug logging (set to true, false, or comma-separated scopes)
+
+# API Gateway settings (optional)
+USE_API_KEY=true  # Enable API key authentication
+API_KEY_NAME=x-api-key  # Header or query parameter name for the API key
+API_KEY_LOCATION=header  # Location of the API key (header or query)
+DEV_API_KEY=cisco-axl-rest-api-dev-key  # Development API key for testing
 ```
 
 ### Development Commands
@@ -251,6 +257,68 @@ curl -X 'PATCH' \
 
 This project includes Docker support for easy deployment. The included Dockerfile uses a multi-stage build process to create an optimized production image.
 
+### Kong API Gateway Integration
+
+The application can be deployed behind Kong API Gateway for enhanced security and API management:
+
+```bash
+# Start the API with Kong Gateway
+cd docker/kong
+docker-compose up -d
+```
+
+Kong is configured in DB-less mode with the following features:
+- API key authentication for API endpoints (while keeping Swagger UI accessible)
+- Rate limiting protection (optional)
+- Request size limits
+- CORS handling
+
+To enable API key authentication in the application:
+
+1. Set the environment variables in your `.env` file:
+```
+USE_API_KEY=true
+API_KEY_NAME=x-api-key
+API_KEY_LOCATION=header
+DEV_API_KEY=cisco-axl-rest-api-dev-key  # Development API key for testing
+```
+
+2. Configure your API key in the Kong configuration file (`docker/kong/kong.yml`):
+```yaml
+consumers:
+  - username: api-user
+    keyauth_credentials:
+      - key: your-secret-api-key  # Replace with your actual API key
+```
+
+3. When making API requests, include your API key in the header:
+```
+x-api-key: your-secret-api-key
+```
+
+For development and testing, you can use the development API key defined in the DEV_API_KEY environment variable:
+```
+x-api-key: cisco-axl-rest-api-dev-key
+```
+
+The Swagger UI will automatically show the API key requirements, include the authentication field when API key auth is enabled, and display the development API key for easier testing.
+
+Example curl commands with API key authentication:
+
+```bash
+# Using API key in header (default)
+curl -X GET 'http://localhost:3000/api/axl/phone/name/SEP001122334455' \
+  -H 'accept: application/json' \
+  -H 'x-api-key: cisco-axl-rest-api-dev-key'
+
+# Using API key in query parameter (if API_KEY_LOCATION=query)
+curl -X GET 'http://localhost:3000/api/axl/phone/name/SEP001122334455?x-api-key=cisco-axl-rest-api-dev-key' \
+  -H 'accept: application/json'
+
+# Check health endpoint with dev key information
+curl -X GET 'http://localhost:3000/health?includeDevKey=true'
+```
+
 ### Using Docker
 
 ```bash
@@ -303,6 +371,10 @@ docker run -p 3000:3000 \
   -e CUCM_VERSION=14.0 \
   -e DATACONTAINERIDENTIFIERTAILS=_data \
   -e DEBUG=false \
+  -e USE_API_KEY=true \
+  -e API_KEY_NAME=x-api-key \
+  -e API_KEY_LOCATION=header \
+  -e DEV_API_KEY=cisco-axl-rest-api-dev-key \
   ghcr.io/sieteunoseis/cucm-soap-rest:latest
 ```
 

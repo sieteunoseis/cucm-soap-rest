@@ -8,6 +8,7 @@ import helmet from 'helmet';
 import { createDynamicRoutes } from './controllers/dynamic.controller';
 import { errorHandler } from './middleware/error.middleware';
 import { requireAuth, startAuthenticationCheck, isAuthenticated, authError } from './middleware/auth.middleware';
+import { checkApiKey, apiKeyConfig } from './middleware/apikey.middleware';
 import { setupSwagger } from './utils/api-explorer';
 import swaggerUi from 'swagger-ui-express';
 import fs from 'fs';
@@ -23,9 +24,17 @@ interface AuthenticationStatus {
   error?: string;
 }
 
+interface ApiKeyAuthStatus {
+  enabled: boolean;
+  keyName: string;
+  location: string;
+  devKey?: string; // Optional to avoid exposing in production
+}
+
 interface HealthResponse {
   status: string;
   authentication: AuthenticationStatus;
+  apiKeyAuth: ApiKeyAuthStatus;
   timestamp: string;
 }
 
@@ -76,6 +85,14 @@ app.use(requireAuth);
 // Start periodic authentication checks
 startAuthenticationCheck();
 
+// Apply API key middleware to API routes only (not to the Swagger UI or docs)
+if (apiKeyConfig.enabled) {
+  debugLog(`API key authentication enabled (${apiKeyConfig.location}: ${apiKeyConfig.keyName})`, null, 'setup');
+  app.use('/api/axl', checkApiKey);
+} else {
+  debugLog('API key authentication disabled', null, 'setup');
+}
+
 // Setup API Explorer as the API documentation endpoint
 debugLog('Setting up API Explorer...', null, 'setup');
 setupSwagger(app);
@@ -104,6 +121,15 @@ app.get('/health', async (req: express.Request, res: express.Response) => {
       status: isAuthenticated ? 'SUCCESS' : 'FAILED',
       cucmServer: process.env.CUCM_HOST,
       cucmVersion: process.env.CUCM_VERSION
+    },
+    apiKeyAuth: {
+      enabled: apiKeyConfig.enabled,
+      keyName: apiKeyConfig.keyName,
+      location: apiKeyConfig.location,
+      // Only include dev key in development environment or when explicitly requested
+      ...(process.env.NODE_ENV !== 'production' || req.query.includeDevKey === 'true' ? { 
+        devKey: apiKeyConfig.devKey 
+      } : {})
     },
     timestamp: new Date().toISOString()
   };
