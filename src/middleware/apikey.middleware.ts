@@ -21,6 +21,12 @@ export function checkApiKey(req: Request, res: Response, next: NextFunction) {
     return next();
   }
 
+  // Skip authentication for API Explorer and related assets
+  if (req.path === "/api-explorer" || req.path === "/api-docs.json" || req.path.startsWith("/api/axl/methods") || req.path === "/logo.png" || req.path === "/favicon.ico" || req.path === "/api/debug/operations") {
+    debugLog(`Skipping authentication for API Explorer`, null, "auth");
+    return next();
+  }
+
   // If running behind Kong and Kong headers are present, trust Kong's authentication
   if (process.env.NODE_ENV === "production" && (req.header("X-Consumer-ID") || req.header("X-Anonymous-Consumer"))) {
     debugLog(`Request authenticated by Kong`, null, "auth");

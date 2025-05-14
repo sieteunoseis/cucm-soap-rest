@@ -8,8 +8,18 @@ services:
       # Route for Swagger UI
       - name: swagger-ui-route
         paths:
+          - /
           - /api-explorer
+          - /api-docs.json
+          - /health
         strip_path: false
+
+      # Public route for the method endpoint (no authentication)
+      - name: public-method-route
+        paths:
+          - /api/axl/method
+        strip_path: false
+        # No authentication plugins for this route
 
       # Route for API endpoints
       - name: api-route
@@ -17,31 +27,62 @@ services:
           - /api/axl/
         strip_path: false
         plugins:
+          # Authentication
           - name: key-auth
             config:
               hide_credentials: false
               key_names: ["apikey", "x-api-key"]
-              anonymous: ""
-          # Optional rate limiting plugin
+          
+          # AXL-aware rate limiting
           - name: rate-limiting
             config:
-              minute: 60
+              second: 5  # 5 requests per second max (adjust to match AXL limits)
+              minute: 60  # 60 requests per minute
               hour: 1000
               policy: local
-          # Request size limiting
+              limit_by: consumer  # Rate limit per API key/consumer
+              redis_timeout: 2000  # If using Redis for distributed rate limiting
+              fault_tolerant: true
+              hide_client_headers: false
+          
+          # Request size limiting - AXL requests can be large
           - name: request-size-limiting
             config:
-              allowed_payload_size: 10
+              allowed_payload_size: 2  # 2MB (adjust based on your largest AXL requests)
+          
+          # Response timeout handling
+          - name: proxy-cache
+            config:
+              response_code: [200, 301, 302, 404, 451]
+              request_method: ["GET", "HEAD"]
+              content_type: ["text/plain", "application/json"]
+              cache_ttl: 300
+              strategy: memory
+          
+          # Circuit breaker for AXL server protection
+          - name: circuit-breaker
+            config:
+              trip_threshold: 10
+              error_threshold_percentage: 50
+              healthy_interval: 5
+              unhealthy_interval: 10
+              unhealthy_statuses: [429, 500, 503]
+              unhealthy_timeout: 60
 
 consumers:
+  # Regular user with standard limits
   - username: api-user
     keyauth_credentials:
       - key: your-secret-api-key
-        # Replace with your actual API key
-        # This key will be used for authentication
-        # when accessing the API endpoints
-        # You can generate a random key or use a specific one
-        # depending on your authentication strategy
-        # Make sure to keep this key secret and secure
-        # as it will be used to authenticate requests
-        # to the API
+  
+  # Power user with higher limits (if needed)
+  - username: power-user
+    keyauth_credentials:
+      - key: power-user-api-key
+    plugins:
+      - name: rate-limiting
+        config:
+          second: 10  # Higher limit for power users
+          minute: 120
+          hour: 2000
+          policy: local
