@@ -548,7 +548,7 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
             <div style="margin-right: 30px; margin-bottom: 5px;">
               <strong>API Key Required:</strong> <span style="color: #dc3545;">Yes</span> (${apiKeyConfig.location}: ${apiKeyConfig.keyName})
             </div>
-            <div style="margin-right: 30px; margin-bottom: 5px;">
+            <div style="margin-bottom: 5px;">
               <strong>Dev API Key:</strong> <span style="font-family: monospace;">${apiKeyConfig.devKey}</span>
             </div>` : ''}
             
