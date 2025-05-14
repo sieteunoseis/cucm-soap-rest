@@ -32,7 +32,10 @@ export function generatePathDescription(
     pathDescription += `\n\n**IMPORTANT - Case-Sensitive Resource Names:** For add operations (PUT), you must use the exact camelCase resource wrapper.
     For this endpoint, use \`${resourceTag}\` as the resource key (not \`${resource}\`).
     For example: \`{ "${resourceTag}": { "name": "Example" } }\`
-    See the examples below for proper request structure.`;
+    See the examples below for proper request structure.
+    
+    **NOTE:** The examples below are general guidelines. For detailed parameter requirements, 
+    use the AXL Method Explorer at the top of the page or refer to Cisco's AXL documentation for the ${operation} operation.`;
   }
   
   // For PATCH methods, add direct parameters note
@@ -40,7 +43,10 @@ export function generatePathDescription(
     pathDescription += `\n\n**Direct Parameter Format:** For update operations (PATCH), provide parameters directly without a resource wrapper.
     For example: \`{ "name": "Example", "description": "Updated description" }\`
     If using a URL parameter (like uuid or name), it will be added automatically.
-    See the examples below for proper request structure.`;
+    See the examples below for proper request structure.
+    
+    **NOTE:** The examples below are general guidelines. For detailed parameter requirements, 
+    use the AXL Method Explorer at the top of the page or refer to Cisco's AXL documentation for the ${operation} operation.`;
   }
   
   // For DELETE methods, add identifier note
@@ -49,7 +55,10 @@ export function generatePathDescription(
     - URL path parameters as shown in this endpoint (recommended)
     - Request body with either name or uuid (both are optional)
     - For example: \`{ "name": "Example-Name" }\` or \`{ "uuid": "12345678-1234-1234-1234-123456789012" }\`
-    See the examples below for proper request structure.`;
+    See the examples below for proper request structure.
+    
+    **NOTE:** The examples below are general guidelines. For detailed parameter requirements, 
+    use the AXL Method Explorer at the top of the page or refer to Cisco's AXL documentation for the ${operation} operation.`;
   }
   
   // For APPLY, RESET, and DO methods, add identifier note
@@ -83,6 +92,12 @@ export function generatePathDescription(
       **NOTE:** The examples below are general guidelines. For detailed parameter requirements, 
       use the AXL Method Explorer at the top of the page or refer to Cisco's AXL documentation for the ${operation} operation.`;
     }
+  }
+  
+  // For GET methods, also add the note
+  if (httpMethod.toLowerCase() === 'get') {
+    pathDescription += `\n\n**NOTE:** The examples below are general guidelines. For detailed parameter requirements, 
+    use the AXL Method Explorer at the top of the page or refer to Cisco's AXL documentation for the ${operation} operation.`;
   }
 
   return pathDescription;
@@ -168,7 +183,7 @@ export function generateExamples(
     // Examples for PUT operations (add) - requires resource wrapper
     return {
       example1: {
-        summary: "With resource wrapper (required)",
+        summary: "With resource wrapper (required) [Generic]",
         description: "For add operations, you must use the resource wrapper with exact camelCase",
         value: {
           // Use the proper camelCase resource tag
@@ -183,7 +198,7 @@ export function generateExamples(
     // Examples for PATCH operations (update) - direct parameters
     return {
       example1: {
-        summary: "Direct parameters (no wrapper)",
+        summary: "Direct parameters (no wrapper) [Generic]",
         description: "For update operations, provide parameters directly without a resource wrapper",
         value: {
           name: "Example-Name",

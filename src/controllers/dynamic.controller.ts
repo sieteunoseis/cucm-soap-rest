@@ -5,10 +5,10 @@ import { mapAxlMethodToHttp, getResourceFromMethod, getResourceTagFromMethod } f
 import { swaggerSpec } from "../utils/api-explorer";
 import fs from "fs";
 import path from "path";
-import { getExampleForResource } from "../utils/resource-examples";
 import { processTemplateVariables, hasTemplateVariables } from "../utils/template-processor";
 import { generatePathDescription, generateExamples, generateSummary, generateTags } from "../utils/swagger-helpers";
 import { packageInfo } from "../utils/version";
+import { debugLog } from "../utils/debug";
 
 // Function to add paths to Swagger spec
 function addPathToSwagger(
@@ -17,7 +17,7 @@ function addPathToSwagger(
   httpMethod: string,
   description: string
 ): void {
-  console.log(`Adding Swagger path: ${httpMethod.toUpperCase()} ${path}`);
+  debugLog(`Adding Swagger path: ${httpMethod.toUpperCase()} ${path}`, null, 'swagger');
 
   // Prepare parameters if needed
   const parameters = [];
@@ -139,7 +139,7 @@ function addPathToSwagger(
     },
   };
 
-  console.log(`Swagger paths count: ${Object.keys(swaggerSpec.paths).length}`);
+  debugLog(`Swagger paths count: ${Object.keys(swaggerSpec.paths).length}`, null, 'swagger');
 }
 
 // Initialize AXL service
@@ -186,14 +186,14 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
     // Always start with the operation tags structure
     let tags: any = {};
     try {
-      console.log(`Attempting to get tags for operation: ${method}`);
+      debugLog(`Attempting to get tags for operation: ${method}`);
       tags = await axlClient.getOperationTags(method);
 
       // Enhanced logging for tag information
       if (Object.keys(tags).length === 0) {
         console.warn(`Warning: No tags returned for operation ${method}`);
       } else {
-        console.log(`Initial tags structure for ${method}:`, JSON.stringify(tags, null, 2));
+        debugLog(`Initial tags structure for ${method}:`, tags);
       }
 
     } catch (tagsError) {
@@ -205,19 +205,19 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
     // Handle different method types differently
     if (method.toLowerCase().startsWith("list")) {
       // For list methods, we need to ensure we always use getOperationTags
-      console.log(`Request query:`, req.query);
-      console.log(`Request params:`, req.params);
+      debugLog(`Request query:`, req.query);
+      debugLog(`Request params:`, req.params);
 
       try {
         // Always fetch the tags structure fresh for list operations
-        console.log(`Getting fresh tags for list operation: ${method}`);
+        debugLog(`Getting fresh tags for list operation: ${method}`);
         tags = await axlClient.getOperationTags(method);
         
         if (Object.keys(tags).length === 0) {
           console.warn(`Warning: No tags returned for list operation ${method}`);
           tags = {};
         } else {
-          console.log(`Retrieved fresh tags structure for ${method}:`, JSON.stringify(tags, null, 2));
+          debugLog(`Retrieved fresh tags structure for ${method}:`, tags);
         }
       } catch (tagsError) {
         console.warn(`Could not get operation tags for ${method}:`, tagsError);
@@ -234,7 +234,7 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
         
         // First apply URL parameter/value if provided
         if (paramType && paramValue) {
-          console.log(`Using parameter ${paramType}=${paramValue} for ${method}`);
+          debugLog(`Using parameter ${paramType}=${paramValue} for ${method}`);
 
           // First set all searchCriteria fields to % as default
           const searchCriteriaKeys = Object.keys(tags.searchCriteria);
@@ -287,7 +287,7 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
           first: first || ""
         };
         
-        console.log(`Final structure for ${method}:`, JSON.stringify(updatedTags, null, 2));
+        debugLog(`Final structure for ${method}:`, updatedTags);
         tags = updatedTags;
       } else {
         // No searchCriteria available - create an empty tags object
@@ -306,7 +306,7 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
           tags[paramType] = paramValue;
         } else {
           // Default to uuid as the parameter type
-          console.log(`No parameter type specified, defaulting to uuid`);
+          debugLog(`No parameter type specified, defaulting to uuid`);
           tags.uuid = paramValue;
         }
       } else if (Object.keys(req.query).length > 0) {
@@ -317,7 +317,7 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
         if (Object.prototype.hasOwnProperty.call(tags, 'name') && tags.name === "" &&
             Object.prototype.hasOwnProperty.call(tags, 'uuid') && tags.uuid === "") {
           // If both name and uuid are present but empty, this operation requires them to be populated
-          console.log(`GET operation ${method} requires parameters but none provided`);
+          debugLog(`GET operation ${method} requires parameters but none provided`);
 
           // Return a more informative error message
           return res.status(400).json({
@@ -330,7 +330,7 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
 
         // For operations with searchCriteria, keep only the searchCriteria
         if (tags.searchCriteria) {
-          console.log(`Setting searchCriteria to % for ${method} with no parameters`);
+          debugLog(`Setting searchCriteria to % for ${method} with no parameters`);
           // Create a fresh tags object with just the searchCriteria
           const searchCriteria = { ...tags.searchCriteria };
           tags = { searchCriteria };
@@ -357,30 +357,28 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
       const resourceTag = getResourceTagFromMethod(method);
 
       // Enhanced debug logs
-      console.log(`Add operation: ${method}, Resource path: ${resourcePath}, Resource tag: ${resourceTag}`);
-      console.log(`Request body (raw):`, req.body);
-      console.log(`Request body (formatted):`, JSON.stringify(req.body, null, 2));
+      debugLog(`Add operation: ${method}, Resource path: ${resourcePath}, Resource tag: ${resourceTag}`);
+      debugLog(`Request body (raw):`, req.body);
       
       // Check for template variables in the request
       const dataContainerIdentifierTails = process.env.DATACONTAINERIDENTIFIERTAILS || '_data';
       const bodyString = JSON.stringify(req.body);
-      console.log(`Request body string for template analysis (length ${bodyString.length}):`);
-      console.log(bodyString);
+      debugLog(`Request body string for template analysis (length ${bodyString.length}):`, bodyString);
       
       const hasDataFields = bodyString.includes(`"${dataContainerIdentifierTails}"`) || 
                            bodyString.includes(`"_data":`);
-      console.log(`Does request body have template variables? ${hasDataFields}`);
+      debugLog(`Does request body have template variables? ${hasDataFields}`);
       
       // Create fresh tags object for add operations - don't merge with existing tags
       tags = {};
       
       // Check if the body already has the resource tag name as a key with exact case match
       if (req.body && req.body[resourceTag]) {
-        console.log(`Request body already has ${resourceTag} as a tag (exact match)`);
+        debugLog(`Request body already has ${resourceTag} as a tag (exact match)`);
         // Use the request body directly without merging with existing tags
         tags[resourceTag] = req.body[resourceTag];
       } else {
-        console.log(`Wrapping body in ${resourceTag} key`);
+        debugLog(`Wrapping body in ${resourceTag} key`);
         // Most add operations expect the data in a specific structure
         tags[resourceTag] = req.body;
       }
@@ -392,18 +390,17 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
       const resourceTag = getResourceTagFromMethod(method);
 
       // Debug logs to see what's happening
-      console.log(`Update operation: ${method}, Resource path: ${resourcePath}, Resource tag: ${resourceTag}`);
-      console.log(`Request body:`, JSON.stringify(req.body, null, 2));
+      debugLog(`Update operation: ${method}, Resource path: ${resourcePath}, Resource tag: ${resourceTag}`);
+      debugLog(`Request body:`, req.body);
       
       // Check for template variables in the request body
       const dataContainerIdentifierTails = process.env.DATACONTAINERIDENTIFIERTAILS || '_data';
       const bodyString = JSON.stringify(req.body);
-      console.log(`Request body string for template analysis (length ${bodyString.length}):`);
-      console.log(bodyString);
+      debugLog(`Request body string for template analysis (length ${bodyString.length}):`, bodyString);
       
       const hasDataFields = bodyString.includes(`"${dataContainerIdentifierTails}"`) || 
                            bodyString.includes(`"_data":`);
-      console.log(`Does request body have template variables? ${hasDataFields}`);
+      debugLog(`Does request body have template variables? ${hasDataFields}`);
 
       // Create fresh tags object for update operations - don't merge with existing tags
       tags = {};
@@ -412,14 +409,14 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
       // Use the specific parameter type if available
       if (paramType && paramValue) {
         if (req.body && req.body[resourceTag]) {
-          console.log(`Request body has ${resourceTag} wrapper, but we'll use direct parameters instead`);
+          debugLog(`Request body has ${resourceTag} wrapper, but we'll use direct parameters instead`);
           // For update operations, don't use the wrapper - use direct parameters
           tags = {
             ...req.body[resourceTag],
             [paramType]: paramValue,
           };
         } else {
-          console.log(`Using direct request body with ${paramType} parameter`);
+          debugLog(`Using direct request body with ${paramType} parameter`);
           // Set the parameters directly without wrapper
           tags = {
             ...req.body,
@@ -429,7 +426,7 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
       } else {
         // UUID is required for update operations if no parameter is provided
         if (req.body && req.body[resourceTag]) {
-          console.log(`Request body has ${resourceTag} wrapper, but we'll use direct parameters`);
+          debugLog(`Request body has ${resourceTag} wrapper, but we'll use direct parameters`);
           // For update operations, don't use the wrapper
           tags = { ...req.body[resourceTag] };
           
@@ -438,7 +435,7 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
             console.warn(`No UUID provided for ${method} operation. This may fail.`);
           }
         } else {
-          console.log(`Using direct request body without wrapper`);
+          debugLog(`Using direct request body without wrapper`);
           // Use the request body directly
           tags = { ...req.body };
           
@@ -452,7 +449,7 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
       // For delete methods, we need the appropriate identifier
       // Check if we have URL parameters
       if (paramValue) {
-        console.log(`Using URL parameter ${paramType}=${paramValue} for ${method}`);
+        debugLog(`Using URL parameter ${paramType}=${paramValue} for ${method}`);
         
         // Use the specific parameter type if available
         if (paramType) {
@@ -460,23 +457,23 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
           tags[paramType] = paramValue;
         } else {
           // Use uuid as the default parameter type
-          console.log(`No parameter type specified, defaulting to uuid`);
+          debugLog(`No parameter type specified, defaulting to uuid`);
           tags.uuid = paramValue;
         }
       } 
       // If no URL parameters, check if body contains an identifier
       else if (req.body) {
-        console.log(`Checking request body for identifiers: ${JSON.stringify(req.body)}`);
+        debugLog(`Checking request body for identifiers:`, req.body);
         
         // Check if any identifiers are in the body
         const hasName = req.body.name && req.body.name !== '';
         const hasUuid = req.body.uuid && req.body.uuid !== '';
         
         if (hasName) {
-          console.log(`Using name=${req.body.name} from request body`);
+          debugLog(`Using name=${req.body.name} from request body`);
           tags.name = req.body.name;
         } else if (hasUuid) {
-          console.log(`Using uuid=${req.body.uuid} from request body`);
+          debugLog(`Using uuid=${req.body.uuid} from request body`);
           tags.uuid = req.body.uuid;
         } else {
           // No identifiers found
@@ -498,8 +495,8 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
                method.toLowerCase().startsWith('reset') || 
                method.toLowerCase().startsWith('do')) {
       // Special handling for apply/reset/do operations - we want a simple format
-      console.log(`Special handling for ${method} operation`);
-      console.log(`Request body for ${method}:`, JSON.stringify(req.body, null, 2));
+      debugLog(`Special handling for ${method} operation`);
+      debugLog(`Request body for ${method}:`, req.body);
 
       // Get the operation type for error messages
       const operationType = method.toLowerCase().startsWith('apply') ? 'apply' : 
@@ -510,7 +507,7 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
 
       // Check if we have URL parameters first
       if (paramValue) {
-        console.log(`Using URL parameter ${paramType}=${paramValue} for ${method}`);
+        debugLog(`Using URL parameter ${paramType}=${paramValue} for ${method}`);
         
         // Create basic request with parameter
         if (paramType) {
@@ -523,7 +520,7 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
       }
       // Otherwise, check the request body for simple format
       else if (req.body) {
-        console.log(`Checking request body for ${method}`);
+        debugLog(`Checking request body for ${method}`);
         
         // Check for direct name/uuid properties only (strict format)
         const hasName = req.body.name && req.body.name !== '';
@@ -557,7 +554,7 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
           });
         }
         
-        console.log(`Identifiers for ${method}:`, tags);
+        debugLog(`Identifiers for ${method}:`, tags);
       } else {
         // No parameters provided
         return res.status(400).json({
@@ -567,10 +564,10 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
         });
       }
 
-      console.log(`Final ${method} tags:`, JSON.stringify(tags, null, 2));
+      debugLog(`Final ${method} tags:`, tags);
     } else {
       // For other methods, use a combination of params, query, and body
-      console.log(`Handling operation: ${method}, HTTP method: ${req.method}`);
+      debugLog(`Handling operation: ${method}, HTTP method: ${req.method}`);
 
       const paramsObj = { ...req.params };
       delete paramsObj.method; // Remove method from the params
@@ -589,27 +586,26 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
       const dataContainerIdentifierTails = process.env.DATACONTAINERIDENTIFIERTAILS || '_data';
       
       // Debug the environment variable
-      console.log(`Using dataContainerIdentifierTails: ${dataContainerIdentifierTails}`);
+      debugLog(`Using dataContainerIdentifierTails: ${dataContainerIdentifierTails}`);
       
       // Stringify the tags for analysis
       const tagsString = JSON.stringify(tags);
-      console.log(`Tags string for analysis (length ${tagsString.length}):`);
-      console.log(tagsString);
+      debugLog(`Tags string for analysis (length ${tagsString.length}):`, tagsString);
       
       // Look for _data fields in the tags object with more specific search
       const hasDataFields = tagsString.includes(`"${dataContainerIdentifierTails}"`);
-      console.log(`Does tags include "${dataContainerIdentifierTails}"? ${hasDataFields}`);
+      debugLog(`Does tags include "${dataContainerIdentifierTails}"? ${hasDataFields}`);
       
       // Additional check with the direct key path
       const hasFieldsAlt = tagsString.includes(`"_data":`);
-      console.log(`Does tags include "_data:" specifically? ${hasFieldsAlt}`);
+      debugLog(`Does tags include "_data:" specifically? ${hasFieldsAlt}`);
       
       if (hasDataFields || hasFieldsAlt) {
-        console.log(`Found template variables in tags, processing with custom template processor...`);
+        debugLog(`Found template variables in tags, processing with custom template processor...`);
         try {
           // Process template variables with our custom function
           let processedTags = processTemplateVariables(tags, dataContainerIdentifierTails);
-          console.log(`Processed tags with template processor:`, JSON.stringify(processedTags, null, 2));
+          debugLog(`Processed tags with template processor:`, processedTags);
           
           // Assign the processed tags back to tags
           tags = processedTags;
@@ -618,20 +614,21 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
           // Continue with original tags if processing fails
         }
       } else {
-        console.log(`No template variables found in tags, skipping template processing.`);
+        debugLog(`No template variables found in tags, skipping template processing.`);
       }
       
       // Execute the AXL operation
-      console.log(`Executing operation ${method} with tags:`, JSON.stringify(tags, null, 2));
+      debugLog(`Executing operation ${method} with tags:`, tags);
       const result = await axlClient.executeOperation(method, tags);
       if (!result) {
-        console.log(`No result returned for operation ${method}`);
+        debugLog(`No result returned for operation ${method}`);
         return res.status(200).json({
           message: `No content returned for operation ${method}`,
           statusCode: 200,
         });
       } else {
-        console.log(`Operation ${method} executed successfully, result:`, JSON.stringify(result, null, 2).substring(0, 200) + "...");
+        debugLog(`Operation ${method} executed successfully, result (truncated):`, 
+          typeof result === 'object' ? { ...result } : result);
         // Return the result
         res.status(200).json(result);
       }
@@ -639,7 +636,7 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
       console.error(`Error executing operation ${method}:`, execError);
 
       if (execError.message && execError.message.includes("ECONNREFUSED")) {
-        console.log(`Connection error for ${method}`);
+        debugLog(`Connection error for ${method}`);
 
         return res.status(503).json({
           error: "SERVICE_UNAVAILABLE",
@@ -695,7 +692,7 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
 // Get all available AXL methods
 async function getAvailableMethods(req: Request, res: Response, next: NextFunction) {
   try {
-    console.log("Getting available methods");
+    debugLog("Getting available methods", null, 'axl-meta');
 
     // Use the returnOperations method to get available operations
     // Can use an optional filter parameter if provided in the query
@@ -703,7 +700,7 @@ async function getAvailableMethods(req: Request, res: Response, next: NextFuncti
 
     try {
       const operations = await axlClient.returnOperations(filterParam);
-      console.log(`Found ${operations.length} operations`);
+      debugLog(`Found ${operations.length} operations`, null, 'axl-meta');
 
       // Transform operations into API endpoints
       const endpoints = operations.map((op: string) => {
@@ -771,7 +768,7 @@ async function getMethodParameters(req: Request, res: Response, next: NextFuncti
 // Create dynamic routes for all AXL methods
 export async function createDynamicRoutes(app: Express) {
   try {
-    console.log("Setting up dynamic routes...");
+    debugLog("Setting up dynamic routes...", null, 'routes');
 
     // Create metadata endpoints
     app.get("/api/axl/methods", (req: Request, res: Response, next: NextFunction) => {
@@ -813,14 +810,14 @@ export async function createDynamicRoutes(app: Express) {
 
     try {
       // Try to get operations using returnOperations
-      console.log("Getting AXL operations...");
+      debugLog("Getting AXL operations...", null, 'routes');
       const operations = await axlClient.returnOperations();
-      console.log(`Found ${operations.length} AXL operations`);
+      debugLog(`Found ${operations.length} AXL operations`, null, 'routes');
 
       // Save all operations for swagger update
       allOperations = operations;
 
-      console.log(`Using ${allOperations.length} operations for routes`);
+      debugLog(`Using ${allOperations.length} operations for routes`, null, 'routes');
 
       // First sort operations so that list* operations are processed before get* operations
       // This ensures that in cases where routes might conflict, the list routes are registered first
@@ -836,7 +833,7 @@ export async function createDynamicRoutes(app: Express) {
         const routePath = `/api/axl/${route}`;
         const isGetOperation = operation.toLowerCase().startsWith('get') && httpMethod === 'get';
 
-        console.log(`Setting up route: ${httpMethod.toUpperCase()} ${routePath}`);
+        debugLog(`Setting up route: ${httpMethod.toUpperCase()} ${routePath}`, null, 'routes');
 
         // For operations that have plural form (list*), always register the base route
         // For singular get* operations, only register parameterized routes (below)
@@ -847,12 +844,12 @@ export async function createDynamicRoutes(app: Express) {
             executeAxlOperation(req, res, next);
           });
         } else {
-          console.log(`Skipping non-parameterized route for ${operation} since it requires parameters`);
+          debugLog(`Skipping non-parameterized route for ${operation} since it requires parameters`, null, 'routes');
         }
 
         // Also register a GET endpoint for viewing resources (for add* operations)
         if (httpMethod === "put") {
-          console.log(`Also registering GET route for: ${routePath}`);
+          debugLog(`Also registering GET route for: ${routePath}`, null, 'routes');
           app.get(routePath, (req: Request, res: Response, next: NextFunction) => {
             // For GET on an addX endpoint, transform to a listX operation
             const listOperation = operation.replace("add", "list");
@@ -872,7 +869,7 @@ export async function createDynamicRoutes(app: Express) {
           const paramRoutePath = `${routePath}/:parameter/:value`;
           const swaggerParamPath = `${routePath}/{parameter}/{value}`; // Swagger uses {} for path params
 
-          console.log(`Setting up dynamic parameter route: ${httpMethod.toUpperCase()} ${paramRoutePath}`);
+          debugLog(`Setting up dynamic parameter route: ${httpMethod.toUpperCase()} ${paramRoutePath}`, null, 'routes');
 
           app[httpMethod](paramRoutePath, (req: Request, res: Response, next: NextFunction) => {
             // Add the method to the params
@@ -901,12 +898,12 @@ For example: \`/api/axl/${route}/name/ABC%\` will find all items where the name 
         }
       });
 
-      console.log(`Set up ${allOperations.length} route(s) for AXL operations`);
+      debugLog(`Set up ${allOperations.length} route(s) for AXL operations`, null, 'routes');
     } catch (axlError) {
       console.error("Error getting AXL operations:", axlError);
 
       // If we can't get operations, log error but don't create fallback routes
-      console.log("Unable to get operations from CUCM. Ensure CUCM server is accessible and credentials are correct.");
+      debugLog("Unable to get operations from CUCM. Ensure CUCM server is accessible and credentials are correct.", null, 'routes');
 
       // Return empty operations array - routes will be created when CUCM connection is available
       allOperations = [];
@@ -974,7 +971,7 @@ async function updateSwaggerFile(operations: string[]) {
     try {
       swaggerFile = JSON.parse(fs.readFileSync(swaggerPath, "utf8"));
     } catch (readError) {
-      console.log("Creating new swagger file");
+      debugLog("Creating new swagger file", null, 'swagger');
       swaggerFile = {
         openapi: "3.0.0",
         info: {
@@ -1157,7 +1154,7 @@ async function updateSwaggerFile(operations: string[]) {
 
     // Write the updated swagger file
     fs.writeFileSync(swaggerPath, JSON.stringify(swaggerFile, null, 2));
-    console.log(`Updated Swagger file with ${operations.length} operations`);
+    debugLog(`Updated Swagger file with ${operations.length} operations`, null, 'swagger');
   } catch (error) {
     console.error("Error updating Swagger file:", error);
   }

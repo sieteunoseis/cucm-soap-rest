@@ -284,7 +284,7 @@ export function getExampleForResource(resourceUrlPath: string, httpMethod: strin
     // PUT examples (add operation)
     return {
       example1: {
-        summary: "Add Resource - With resource wrapper",
+        summary: "Add Resource - With resource wrapper [Generic]",
         description: "For add operations, use the resource wrapper with exact camelCase",
         value: {
           [resourceTag]: {
@@ -298,7 +298,7 @@ export function getExampleForResource(resourceUrlPath: string, httpMethod: strin
     // PATCH examples (update operation)
     return {
       example1: {
-        summary: "Update Resource - Direct parameters",
+        summary: "Update Resource - Direct parameters [Generic]",
         description: "For update operations, provide parameters directly without a resource wrapper",
         value: {
           name: "Example-Name",

@@ -7,11 +7,27 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { createDynamicRoutes } from './controllers/dynamic.controller';
 import { errorHandler } from './middleware/error.middleware';
+import { requireAuth, startAuthenticationCheck, isAuthenticated, authError } from './middleware/auth.middleware';
 import { setupSwagger } from './utils/api-explorer';
 import swaggerUi from 'swagger-ui-express';
 import fs from 'fs';
 import path from 'path';
 import { json } from 'body-parser';
+import { debugLog } from './utils/debug';
+
+// Define interfaces for health check response
+interface AuthenticationStatus {
+  status: 'SUCCESS' | 'FAILED';
+  cucmServer?: string;
+  cucmVersion?: string;
+  error?: string;
+}
+
+interface HealthResponse {
+  status: string;
+  authentication: AuthenticationStatus;
+  timestamp: string;
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -51,8 +67,17 @@ app.use(cors());
 // Body parser for all endpoints
 app.use(express.json());
 
+// Serve static files from the public directory
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Apply authentication middleware to protect routes
+app.use(requireAuth);
+
+// Start periodic authentication checks
+startAuthenticationCheck();
+
 // Setup API Explorer as the API documentation endpoint
-console.log('Setting up API Explorer...');
+debugLog('Setting up API Explorer...', null, 'setup');
 setupSwagger(app);
 
 // Add endpoint to get the latest API spec in JSON format
@@ -61,9 +86,34 @@ app.get('/api-docs.json', (req, res) => {
   res.json(swaggerFile);
 });
 
-// Basic health check endpoint
-app.get('/health', (req: express.Request, res: express.Response) => {
-  res.status(200).send({ status: 'UP' });
+// Enhanced health check endpoint with authentication status
+app.get('/health', async (req: express.Request, res: express.Response) => {
+  // Trigger a fresh authentication check
+  try {
+    // Wait for authentication check to complete
+    await import('./middleware/auth.middleware').then(auth => auth.checkAuthentication());
+  } catch (error) {
+    // We'll handle the result below regardless of success or failure
+    debugLog('Health check triggered authentication refresh', error, 'health');
+  }
+  
+  // Now use the updated authentication state
+  const authResponse: HealthResponse = {
+    status: 'UP',
+    authentication: {
+      status: isAuthenticated ? 'SUCCESS' : 'FAILED',
+      cucmServer: process.env.CUCM_HOST,
+      cucmVersion: process.env.CUCM_VERSION
+    },
+    timestamp: new Date().toISOString()
+  };
+  
+  // If authentication failed, add the error details
+  if (!isAuthenticated && authError) {
+    authResponse.authentication.error = authError;
+  }
+  
+  res.status(200).json(authResponse);
 });
 
 // Redirect root URL to api-explorer endpoint
@@ -90,11 +140,14 @@ app.use(function(err: any, req: express.Request, res: express.Response, next: ex
 
 // Start the server
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log(`API Documentation:`);
-  console.log(`- http://localhost:${PORT}/api-explorer (API Explorer UI)`);
-  console.log(`- http://localhost:${PORT}/api-docs.json (Raw JSON)`);
-  console.log(`Debug Routes: http://localhost:${PORT}/api/debug/routes`);
+  debugLog(`Server is running on port ${PORT}`, null, 'setup');
+  debugLog(`API Documentation:`, null, 'setup');
+  debugLog(`- http://localhost:${PORT}/api-explorer (API Explorer UI)`, null, 'setup');
+  debugLog(`- http://localhost:${PORT}/api-docs.json (Raw JSON)`, null, 'setup');
+  debugLog(`Debug Routes: http://localhost:${PORT}/api/debug/routes`, null, 'setup');
+  
+  // Keep one console.log for immediate visibility in all environments
+  console.log(`🚀 Server started on port ${PORT}, API Explorer at http://localhost:${PORT}/api-explorer`);
 });
 
 export default app;

@@ -31,6 +31,9 @@ RUN npm ci --only=production
 # Copy built app from builder stage
 COPY --from=builder /usr/src/app/dist ./dist
 
+# Copy public directory for static files like favicon
+COPY --from=builder /usr/src/app/public ./public
+
 # Expose the port the app runs on
 EXPOSE 3000
 

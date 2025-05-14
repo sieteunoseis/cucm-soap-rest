@@ -9,6 +9,7 @@ A dynamic REST API built with Express and TypeScript that provides a RESTful int
 - **Swagger Documentation**: Auto-generated API documentation with interactive UI
 - **AXL Operation Support**: Supports all AXL operations available in your CUCM version
 - **Template Variables**: Support for JSON template variables using the `%%_variable_%%` syntax with `_data` field
+- **Cisco Branding**: Includes Cisco favicon and logo in the UI
 
 ## Development
 
@@ -42,7 +43,8 @@ CUCM_USER=your-username
 CUCM_PASS=your-password
 CUCM_VERSION=14.0  # AXL API version
 PORT=3000
-dataContainerIdentifierTails=_data  # Identifier for json-variables template fields
+DATACONTAINERIDENTIFIERTAILS=_data  # Identifier for json-variables template fields
+DEBUG=false  # Enable/disable debug logging (set to true, false, or comma-separated scopes)
 ```
 
 ### Development Commands
@@ -104,6 +106,51 @@ The API documentation is available at:
 
 - `/api-explorer` - Interactive API documentation with Swagger UI
 - `/api-docs.json` - Raw JSON documentation
+
+## Debug Logging
+
+The application includes a configurable debug logging system that helps with troubleshooting and development. Debug logs can be enabled or disabled via the `DEBUG` environment variable.
+
+### Configuring Debug Logs
+
+Set the `DEBUG` environment variable to control log output:
+
+```
+# In .env file or environment variables
+# Enable all debug logs
+DEBUG=true
+
+# Disable all debug logs
+DEBUG=false
+
+# Enable specific log scopes
+DEBUG=axl,routes,swagger
+```
+
+### Available Log Scopes
+
+- `axl` - AXL API operations and SOAP requests
+- `swagger` - Swagger documentation generation
+- `routes` - API route setup and registration
+- `axl-meta` - AXL metadata operations (listing available methods)
+
+### Examples
+
+```bash
+# Enable all debug logs for development
+DEBUG=true npm run dev
+
+# Enable only AXL operation logs
+DEBUG=axl npm run dev
+
+# Enable multiple specific scopes
+DEBUG=axl,routes npm run dev
+
+# Disable all debug logs for production
+DEBUG=false npm start
+```
+
+When debugging is enabled, the application will output detailed information to the console about API operations, requests, responses, and internal processes.
 
 ## Template Variables
 
@@ -255,6 +302,7 @@ docker run -p 3000:3000 \
   -e CUCM_PASS=your-password \
   -e CUCM_VERSION=14.0 \
   -e DATACONTAINERIDENTIFIERTAILS=_data \
+  -e DEBUG=false \
   ghcr.io/sieteunoseis/cucm-soap-rest:latest
 ```
 

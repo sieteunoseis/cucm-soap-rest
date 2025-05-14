@@ -5,6 +5,7 @@ import path from 'path';
 import { getExampleForResource } from './resource-examples';
 import { getResourceTagFromMethod } from './method-mapper';
 import { packageInfo } from './version';
+import { isAuthenticated } from '../middleware/auth.middleware';
 
 // Define explicit type for Swagger spec
 interface SwaggerSpec {
@@ -74,9 +75,9 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
       // This will be overridden with a custom function in the UI itself that orders them:
       // GET -> PUT -> PATCH -> DELETE -> POST
     },
-    customCss: '.topbar-wrapper img { content: url("https://www.cisco.com/web/fw/i/cisco-logo-blue.gif"); }',
+    customCss: '.topbar-wrapper img { content: url("/logo.png"); }',
     customSiteTitle: "Cisco AXL REST API",
-    customfavIcon: "https://www.cisco.com/favicon.ico",
+    customfavIcon: "/favicon.ico",
     customJs: [] as string[],
     customCssUrl: [] as string[]
   };
@@ -107,7 +108,69 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
       font-weight: bold;
       color: #4990e2;
     }
+    .config-panel {
+      background-color: #f8f9fa;
+      border-left: 5px solid #4990e2;
+      padding: 10px 15px;
+      margin: 10px 0 20px 0;
+      border-radius: 4px;
+      font-family: sans-serif;
+    }
+    .config-panel h4 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      color: #333;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .config-item {
+      margin-right: 30px;
+      margin-bottom: 5px;
+      display: inline-block;
+    }
+    .status-connected {
+      color: #198754;
+      font-weight: 500;
+    }
+    .status-disconnected {
+      color: #dc3545;
+      font-weight: 500;
+    }
   `;
+  
+  // Add HTML for config panel to be inserted into the UI
+  options.customJs.push(`
+    (function() {
+      window.addEventListener('load', function() {
+        // Create config panel
+        const configPanel = document.createElement('div');
+        configPanel.className = 'config-panel';
+        configPanel.innerHTML = \`
+          <h4>Configuration</h4>
+          <div>
+            <div class="config-item">
+              <strong>CUCM Host:</strong> ${process.env.CUCM_HOST || 'Not configured'}
+            </div>
+            <div class="config-item">
+              <strong>CUCM Version:</strong> ${process.env.CUCM_VERSION || 'Not configured'}
+            </div>
+            <div class="config-item">
+              <strong>CUCM User:</strong> ${process.env.CUCM_USER || 'Not configured'}
+            </div>
+            <div class="config-item">
+              <strong>Connection Status:</strong> <span class="${isAuthenticated ? 'status-connected' : 'status-disconnected'}">${isAuthenticated ? 'Connected' : 'Disconnected'}</span>
+            </div>
+          </div>
+        \`;
+        
+        // Insert after title
+        const infoContainer = document.querySelector('.swagger-ui .info');
+        if (infoContainer) {
+          infoContainer.appendChild(configPanel);
+        }
+      });
+    })();
+  `);
   
   // Update the script to fetch methods and handle all edge cases
   options.customJs.push(`
@@ -241,6 +304,7 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
     <head>
       <meta charset="UTF-8">
       <title>Cisco AXL REST API - API Explorer</title>
+      <link rel="icon" href="/favicon.ico" type="image/x-icon">
       <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@4.5.0/swagger-ui.css" />
       <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" />
       <style>
@@ -432,7 +496,28 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
       <!-- Method Explorer Component -->
       <div id="method-explorer">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <h3 class="explorer-title">AXL Method Explorer</h3>
+          <div style="display: flex; align-items: center;">
+            <img src="/logo.png" alt="Cisco Logo" style="height: 40px; margin-right: 15px;" />
+            <h3 class="explorer-title">AXL Method Explorer</h3>
+          </div>
+        </div>
+
+        <div style="background-color: #f8f9fa; border-left: 5px solid #4990e2; padding: 10px 15px; margin: 10px 0 20px 0; border-radius: 4px;">
+          <h4 style="margin-top: 0; margin-bottom: 8px; color: #333; font-size: 16px;">Configuration</h4>
+          <div style="display: flex; flex-wrap: wrap;">
+            <div style="margin-right: 30px; margin-bottom: 5px;">
+              <strong>CUCM Host:</strong> ${process.env.CUCM_HOST || 'Not configured'}
+            </div>
+            <div style="margin-right: 30px; margin-bottom: 5px;">
+              <strong>CUCM Version:</strong> ${process.env.CUCM_VERSION || 'Not configured'}
+            </div>
+            <div style="margin-right: 30px; margin-bottom: 5px;">
+              <strong>CUCM User:</strong> ${process.env.CUCM_USER || 'Not configured'}
+            </div>
+            <div style="margin-bottom: 5px;">
+              <strong>Connection Status:</strong> <span style="color: ${isAuthenticated ? '#198754' : '#dc3545'}; font-weight: 500;">${isAuthenticated ? 'Connected' : 'Disconnected'}</span>
+            </div>
+          </div>
         </div>
 
         <p>This explorer helps you discover available AXL methods and their required parameters. Select a method to see details.</p>
