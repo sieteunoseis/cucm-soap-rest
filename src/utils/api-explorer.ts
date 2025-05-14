@@ -297,7 +297,7 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
           }
 
           // Fetch parameters for the selected method
-          fetch(\`/api/axl/methods/\${selectedMethod}/parameters\`)
+          fetch(\`/api/setup/methods/\${selectedMethod}/parameters\`)
             .then(response => response.json())
             .then(data => {
               tagsContainer.innerHTML = '';
@@ -747,7 +747,7 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
               }
 
               // Fetch parameters for the selected method
-              fetch(\`/api/axl/methods/\${selectedMethod}/parameters\`)
+              fetch(\`/api/setup/methods/\${selectedMethod}/parameters\`)
                 .then(response => response.json())
                 .then(data => {
                   if (tagsContainer) {

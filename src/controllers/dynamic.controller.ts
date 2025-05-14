@@ -771,19 +771,19 @@ export async function createDynamicRoutes(app: Express) {
     debugLog("Setting up dynamic routes...", null, 'routes');
 
     // Create metadata endpoints
-    app.get("/api/axl/methods", (req: Request, res: Response, next: NextFunction) => {
+    app.get("/api/setup/methods", (req: Request, res: Response, next: NextFunction) => {
       getAvailableMethods(req, res, next);
     });
 
     // Add metadata endpoint to Swagger
-    addPathToSwagger("getAvailableMethods", "/api/axl/methods", "get", "Get all available AXL methods");
+    addPathToSwagger("getAvailableMethods", "/api/setup/methods", "get", "Get all available AXL methods");
 
-    app.get("/api/axl/methods/:method/parameters", (req: Request, res: Response, next: NextFunction) => {
+    app.get("/api/setup/methods/:method/parameters", (req: Request, res: Response, next: NextFunction) => {
       getMethodParameters(req, res, next);
     });
 
     // Add parameters endpoint to Swagger
-    addPathToSwagger("getMethodParameters", "/api/axl/methods/{method}/parameters", "get", "Get parameters for a specific AXL method");
+    addPathToSwagger("getMethodParameters", "/api/setup/methods/{method}/parameters", "get", "Get parameters for a specific AXL method");
 
 
     // Add a debug endpoint to check available operations

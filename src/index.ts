@@ -1,22 +1,22 @@
 // Load environment variables from .env file
-import dotenv from "dotenv";
+import dotenv from 'dotenv';
 dotenv.config();
 
-import express from "express";
-import cors from "cors";
-import helmet from "helmet";
-import { createDynamicRoutes } from "./controllers/dynamic.controller";
-import { errorHandler } from "./middleware/error.middleware";
-import { requireAuth, startAuthenticationCheck, isAuthenticated, authError } from "./middleware/auth.middleware";
-import { checkApiKey, apiKeyConfig } from "./middleware/apikey.middleware";
-import { setupSwagger } from "./utils/api-explorer";
-import fs from "fs";
-import path from "path";
-import { debugLog } from "./utils/debug";
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import { createDynamicRoutes } from './controllers/dynamic.controller';
+import { errorHandler } from './middleware/error.middleware';
+import { requireAuth, startAuthenticationCheck, isAuthenticated, authError } from './middleware/auth.middleware';
+import { checkApiKey, apiKeyConfig } from './middleware/apikey.middleware';
+import { setupSwagger } from './utils/api-explorer';
+import fs from 'fs';
+import path from 'path';
+import { debugLog } from './utils/debug';
 
 // Define interfaces for health check response
 interface AuthenticationStatus {
-  status: "SUCCESS" | "FAILED";
+  status: 'SUCCESS' | 'FAILED';
   cucmServer?: string;
   cucmVersion?: string;
   error?: string;
@@ -41,7 +41,9 @@ const PORT = process.env.PORT || 3000;
 
 function resolvePath(relativePath: string): string {
   // In production, __dirname points to the dist directory
-  const baseDir = process.env.NODE_ENV === "production" ? path.join(__dirname, "..") : process.cwd();
+  const baseDir = process.env.NODE_ENV === 'production'
+    ? path.join(__dirname, '..')
+    : process.cwd();
 
   return path.join(baseDir, relativePath);
 }
@@ -52,7 +54,7 @@ app.use(
     contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
     crossOriginOpenerPolicy: false,
-    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
     originAgentCluster: false,
   })
 );
@@ -60,8 +62,8 @@ app.use(
 // Remove headers that require secure contexts when running over HTTP
 app.use((req, res, next) => {
   // Check if we're in production and running over HTTP
-  if (process.env.NODE_ENV === "production" && !req.secure) {
-    res.removeHeader("Cross-Origin-Opener-Policy");
+  if (process.env.NODE_ENV === 'production' && !req.secure) {
+    res.removeHeader('Cross-Origin-Opener-Policy');
   }
   next();
 });
@@ -73,7 +75,7 @@ app.use(cors());
 app.use(express.json());
 
 // Serve static files from the public directory
-app.use(express.static(path.join(__dirname, "../public")));
+app.use(express.static(path.join(__dirname, '../public')));
 
 // Apply authentication middleware to protect routes
 app.use(requireAuth);
@@ -83,102 +85,91 @@ startAuthenticationCheck();
 
 // Apply API key middleware to API routes only (not to the Swagger UI or docs)
 if (apiKeyConfig.enabled) {
-  debugLog(`API key authentication enabled (${apiKeyConfig.location}: ${apiKeyConfig.keyName})`, null, "setup");
-  // Use a middleware function that checks the path. Exclude specific paths from API key check
-  app.use("/api/axl", (req, res, next) => {
-    // Skip API key check for specific method endpoint
-    if (req.path === "/method" || req.path.startsWith("/methods/")) {
-      debugLog(`Skipping API key check for excluded path: ${req.path}`, null, "setup");
-      return next();
-    }
-
-    // For all other API paths, apply the API key check
-    return checkApiKey(req, res, next);
-  });
+  debugLog(`API key authentication enabled (${apiKeyConfig.location}: ${apiKeyConfig.keyName})`, null, 'setup');
+  app.use('/api/axl', checkApiKey);
 } else {
-  debugLog("API key authentication disabled", null, "setup");
+  debugLog('API key authentication disabled', null, 'setup');
 }
 
 // Setup API Explorer as the API documentation endpoint
-debugLog("Setting up API Explorer...", null, "setup");
+debugLog('Setting up API Explorer...', null, 'setup');
 setupSwagger(app);
 
 // Add endpoint to get the latest API spec in JSON format
-app.get("/api-docs.json", (req, res) => {
-  const swaggerFile = JSON.parse(fs.readFileSync(path.join(__dirname, "../swagger-output.json"), "utf8"));
+app.get('/api-docs.json', (req, res) => {
+  const swaggerFile = JSON.parse(fs.readFileSync(path.join(__dirname, '../swagger-output.json'), 'utf8'));
   res.json(swaggerFile);
 });
 
 // Enhanced health check endpoint with authentication status
-app.get("/health", async (req: express.Request, res: express.Response) => {
+app.get('/health', async (req: express.Request, res: express.Response) => {
   // Trigger a fresh authentication check
   try {
     // Wait for authentication check to complete
-    await import("./middleware/auth.middleware").then((auth) => auth.checkAuthentication());
+    await import('./middleware/auth.middleware').then(auth => auth.checkAuthentication());
   } catch (error) {
     // We'll handle the result below regardless of success or failure
-    debugLog("Health check triggered authentication refresh", error, "health");
+    debugLog('Health check triggered authentication refresh', error, 'health');
   }
-
+  
   // Now use the updated authentication state
   const authResponse: HealthResponse = {
-    status: "UP",
+    status: 'UP',
     authentication: {
-      status: isAuthenticated ? "SUCCESS" : "FAILED",
+      status: isAuthenticated ? 'SUCCESS' : 'FAILED',
       cucmServer: process.env.CUCM_HOST,
-      cucmVersion: process.env.CUCM_VERSION,
+      cucmVersion: process.env.CUCM_VERSION
     },
     apiKeyAuth: {
       enabled: apiKeyConfig.enabled,
       keyName: apiKeyConfig.keyName,
       location: apiKeyConfig.location,
       // Only include dev key in development environment or when explicitly requested
-      ...(process.env.NODE_ENV !== "production" || req.query.includeDevKey === "true"
-        ? {
-            devKey: apiKeyConfig.devKey,
-          }
-        : {}),
+      ...(process.env.NODE_ENV !== 'production' || req.query.includeDevKey === 'true' ? { 
+        devKey: apiKeyConfig.devKey 
+      } : {})
     },
-    timestamp: new Date().toISOString(),
+    timestamp: new Date().toISOString()
   };
-
+  
   // If authentication failed, add the error details
   if (!isAuthenticated && authError) {
     authResponse.authentication.error = authError;
   }
-
+  
   res.status(200).json(authResponse);
 });
 
 // Redirect root URL to api-explorer endpoint
-app.get("/", (req: express.Request, res: express.Response) => {
-  res.redirect("/api-explorer");
+app.get('/', (req: express.Request, res: express.Response) => {
+  res.redirect('/api-explorer');
 });
 
 // Redirect old api-docs URL to api-explorer endpoint
-app.get("/api-docs", (req: express.Request, res: express.Response) => {
-  res.redirect("/api-explorer");
+app.get('/api-docs', (req: express.Request, res: express.Response) => {
+  res.redirect('/api-explorer');
 });
 
+
 // Set up dynamic routes
-console.log("Creating dynamic routes...");
-createDynamicRoutes(app).catch((err) => {
-  console.error("Failed to create dynamic routes:", err);
+console.log('Creating dynamic routes...');
+createDynamicRoutes(app).catch(err => {
+  console.error('Failed to create dynamic routes:', err);
 });
 
 // Error handling middleware
-app.use(function (err: any, req: express.Request, res: express.Response, next: express.NextFunction) {
+app.use(function(err: any, req: express.Request, res: express.Response, next: express.NextFunction) {
   errorHandler(err, req, res, next);
 });
 
 // Start the server
 app.listen(PORT, () => {
-  debugLog(`Server is running on port ${PORT}`, null, "setup");
-  debugLog(`API Documentation:`, null, "setup");
-  debugLog(`- http://localhost:${PORT}/api-explorer (API Explorer UI)`, null, "setup");
-  debugLog(`- http://localhost:${PORT}/api-docs.json (Raw JSON)`, null, "setup");
-  debugLog(`Debug Routes: http://localhost:${PORT}/api/debug/routes`, null, "setup");
-
+  debugLog(`Server is running on port ${PORT}`, null, 'setup');
+  debugLog(`API Documentation:`, null, 'setup');
+  debugLog(`- http://localhost:${PORT}/api-explorer (API Explorer UI)`, null, 'setup');
+  debugLog(`- http://localhost:${PORT}/api-docs.json (Raw JSON)`, null, 'setup');
+  debugLog(`Debug Routes: http://localhost:${PORT}/api/debug/routes`, null, 'setup');
+  
   // Keep one console.log for immediate visibility in all environments
   console.log(`🚀 Server started on port ${PORT}, API Explorer at http://localhost:${PORT}/api-explorer`);
 });
