@@ -1,0 +1,16 @@
+services:
+  api:
+    image: ghcr.io/sieteunoseis/cucm-soap-rest:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - CUCM_HOST=${CUCM_HOST}
+      - CUCM_USER=${CUCM_USER}
+      - CUCM_PASS=${CUCM_PASS}
+      - CUCM_VERSION=${CUCM_VERSION}
+      - PORT=3000
+      - DATACONTAINERIDENTIFIERTAILS=_data
+    restart: unless-stopped
+    volumes:
+      - ./.env:/usr/src/app/.env:ro

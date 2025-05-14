@@ -1,0 +1,36 @@
+_format_version: "2.1"
+_transform: true
+
+services:
+  - name: cucm-api
+    url: http://cucm-rest-api:3000
+    routes:
+      # Route for Swagger UI
+      - name: swagger-ui-route
+        paths:
+          - /api-explorer
+        strip_path: false
+
+      # Route for API endpoints
+      - name: api-route
+        paths:
+          - /api/axl/
+        strip_path: false
+        plugins:
+          - name: key-auth
+            config:
+              hide_credentials: true
+              key_names: ["apikey", "x-api-key"]
+
+consumers:
+  - username: api-user
+    keyauth_credentials:
+      - key: your-secret-api-key
+        # Replace with your actual API key
+        # This key will be used for authentication
+        # when accessing the API endpoints
+        # You can generate a random key or use a specific one
+        # depending on your authentication strategy
+        # Make sure to keep this key secret and secure
+        # as it will be used to authenticate requests
+        # to the API

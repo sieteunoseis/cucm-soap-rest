@@ -1,0 +1,37 @@
+services:
+  cucm-rest-api:
+    image: ghcr.io/sieteunoseis/cucm-soap-rest:latest
+    environment:
+      - NODE_ENV=production
+      - CUCM_HOST=${CUCM_HOST}
+      - CUCM_USER=${CUCM_USER}
+      - CUCM_PASS=${CUCM_PASS}
+      - CUCM_VERSION=${CUCM_VERSION}
+      - PORT=3000
+      - DATACONTAINERIDENTIFIERTAILS=_data
+    restart: always
+    networks:
+      - kong-net
+  
+    # Kong in DB-less mode for simplicity
+  kong:
+    image: kong:latest
+    environment:
+      - KONG_DATABASE=off
+      - KONG_DECLARATIVE_CONFIG=/etc/kong/kong.yml
+      - KONG_PROXY_ACCESS_LOG=/dev/stdout
+      - KONG_ADMIN_ACCESS_LOG=/dev/stdout
+      - KONG_PROXY_ERROR_LOG=/dev/stderr
+      - KONG_ADMIN_ERROR_LOG=/dev/stderr
+    volumes:
+      - ./kong.yml:/etc/kong/kong.yml
+    ports:
+      - "8000:8000"  # Kong proxy
+      - "8001:8001"  # Kong admin API (optional, can be removed in production)
+    restart: always
+    networks:
+      - kong-net
+
+networks:
+  kong-net:
+    driver: bridge
