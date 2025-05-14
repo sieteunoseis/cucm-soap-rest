@@ -7,6 +7,7 @@ export const apiKeyConfig = {
   keyName: process.env.API_KEY_NAME || "x-api-key",
   location: process.env.API_KEY_LOCATION || "header",
   devKey: process.env.DEV_API_KEY || "cisco-axl-rest-api-dev-key",
+  mode: process.env.NODE_ENV || "development",
 };
 
 /**
@@ -21,11 +22,6 @@ export function checkApiKey(req: Request, res: Response, next: NextFunction) {
     return next();
   }else {
     debugLog(`API key authentication is enabled`, null, "auth");
-  }
-  // Skip authentication for API Explorer and related assets
-  if (req.path === "/api-explorer" || req.path === "/api-docs.json"|| req.path === "/health" || req.path.startsWith("/methods") || req.path === "/logo.png" || req.path === "/favicon.ico" || req.path === "/debug/operations") {
-    debugLog(`Skipping authentication for API Explorer`, null, "auth");
-    return next();
   }
 
   // If running behind Kong and Kong headers are present, trust Kong's authentication

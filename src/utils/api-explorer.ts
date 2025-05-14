@@ -1,5 +1,4 @@
 import { Express, Request, Response } from 'express';
-import swaggerUi from 'swagger-ui-express';
 import fs from 'fs';
 import path from 'path';
 import { getExampleForResource } from './resource-examples';
@@ -218,12 +217,9 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
       // Fetch methods and populate dropdown
       fetch('/api/debug/operations')
         .then(response => {
-          console.log('Response status:', response.status);
           return response.json();
         })
-        .then(data => {
-          console.log('Debug operations data:', data);
-          
+        .then(data => {          
           // Clear loading state
           dropdown.innerHTML = '<option value="">-- Select a method --</option>';
           
@@ -235,14 +231,11 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
               option.textContent = operation;
               dropdown.appendChild(option);
             });
-            console.log(\`Populated dropdown with \${data.operations.length} methods\`);
           } else {
-            console.error('No operations array in response:', data);
             dropdown.innerHTML = '<option value="">No methods available</option>';
           }
         })
         .catch(error => {
-          console.error('Error fetching methods:', error);
           dropdown.innerHTML = '<option value="">Error loading methods</option>';
         });
 
@@ -308,7 +301,6 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
               }
             })
             .catch(error => {
-              console.error('Error fetching parameters:', error);
               tagsContainer.textContent = 'Error loading parameters';
             });
         }
@@ -547,7 +539,8 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
             ${apiKeyConfig.enabled ? `
             <div style="margin-right: 30px; margin-bottom: 5px;">
               <strong>API Key Required:</strong> <span style="color: #dc3545;">Yes</span> (${apiKeyConfig.location}: ${apiKeyConfig.keyName})
-            </div>
+            </div>` : ''}
+            ${apiKeyConfig.mode === "development" && apiKeyConfig.enabled ? `
             <div style="margin-bottom: 5px;">
               <strong>Dev API Key:</strong> <span style="font-family: monospace;">${apiKeyConfig.devKey}</span>
             </div>` : ''}
@@ -588,13 +581,11 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
           const copyButton = document.getElementById('copy-button');
           
           if (!dropdown) {
-            console.error('Could not find dropdown element');
             return;
           }
 
           // Check if jQuery is available
           if (typeof jQuery === 'undefined') {
-            console.error('jQuery is required for Select2 but not loaded');
             return;
           }
           
@@ -610,11 +601,9 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
           // Load methods from the API
           fetch('/api/debug/operations')
             .then(response => {
-              console.log('Response status:', response.status);
               return response.json();
             })
             .then(data => {
-              console.log('Debug operations data:', data);
 
               // Clear existing options
               jQuery(dropdown).empty();
@@ -634,9 +623,6 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
                   option.text = operation;
                   dropdown.appendChild(option);
                 });
-                console.log('Populated dropdown with ' + data.operations.length + ' methods');
-              } else {
-                console.error('No operations array in response:', data);
               }
 
               // Trigger change event to update Select2
@@ -650,7 +636,6 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
               });
             })
             .catch(error => {
-              console.error('Error fetching methods:', error);
               jQuery(dropdown).empty();
               
               const errorOption = document.createElement('option');
@@ -674,23 +659,16 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
           // Show/hide method details and handle parameters
           // Use both native change and Select2 change events to ensure both work
           jQuery(dropdown).on('select2:select', function(e) {
-            console.log('Select2:select event triggered with data:', e.params.data);
             
             // Directly show the method details when a selection is made
             if (methodDetails && e.params.data && e.params.data.id) {
               methodDetails.style.display = 'block';
-              console.log('Method details box forced to display via select2:select event');
             }
           }).on('change', function() {
             const selectedMethod = dropdown.value;
-            console.log('Select2 change event triggered. Selected method:', selectedMethod);
             
             if (methodDetails) {
-              console.log('Method details display before:', methodDetails.style.display);
               methodDetails.style.display = selectedMethod ? 'block' : 'none';
-              console.log('Method details display after:', methodDetails.style.display);
-            } else {
-              console.error('Method details element not found!');
             }
 
             if (selectedMethod) {
@@ -795,7 +773,6 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
                           }, 2000);
                         })
                         .catch(err => {
-                          console.error('Could not copy text: ', err);
                           copyButton.textContent = 'Failed!';
                           setTimeout(() => {
                             copyButton.textContent = 'Copy';
@@ -805,7 +782,6 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
                   }
                 })
                 .catch(error => {
-                  console.error('Error fetching parameters:', error);
                   if (tagsContainer) {
                     // Clear everything except the copy button
                     while (tagsContainer.firstChild) {
