@@ -87,7 +87,7 @@ if (apiKeyConfig.enabled) {
   // Use a middleware function that checks the path. Exclude specific paths from API key check
   app.use("/api/axl", (req, res, next) => {
     // Skip API key check for specific method endpoint
-    if (req.path === "/method" || req.path.startsWith("/method/")) {
+    if (req.path === "/method" || req.path.startsWith("/methods/")) {
       debugLog(`Skipping API key check for excluded path: ${req.path}`, null, "setup");
       return next();
     }
