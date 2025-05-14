@@ -22,6 +22,11 @@ export const isDebugEnabled = (scope?: string): boolean => {
     return false;
   }
 
+  // If DEBUG is set to a truthy value like "true", "yes", "1" - return true for any scope
+  if (["true", "yes", "1", "on", "y"].includes(debug.toLowerCase())) {
+    return true;
+  }
+
   // If DEBUG is set to a truthy value and no scope is specified, return true
   if (!scope) {
     return true;
@@ -31,7 +36,6 @@ export const isDebugEnabled = (scope?: string): boolean => {
   const debugScopes = debug.toLowerCase().split(',').map(s => s.trim());
   return debugScopes.includes('*') || debugScopes.includes('all') || debugScopes.includes(scope.toLowerCase());
 };
-
 /**
  * Debug logging function that only logs when DEBUG environment variable is enabled
  * 

@@ -139,6 +139,9 @@ DEBUG=axl,routes,swagger
 - `swagger` - Swagger documentation generation
 - `routes` - API route setup and registration
 - `axl-meta` - AXL metadata operations (listing available methods)
+- `setup`
+- `health`
+- `auth`
 
 ### Examples
 

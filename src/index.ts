@@ -10,10 +10,8 @@ import { errorHandler } from './middleware/error.middleware';
 import { requireAuth, startAuthenticationCheck, isAuthenticated, authError } from './middleware/auth.middleware';
 import { checkApiKey, apiKeyConfig } from './middleware/apikey.middleware';
 import { setupSwagger } from './utils/api-explorer';
-import swaggerUi from 'swagger-ui-express';
 import fs from 'fs';
 import path from 'path';
-import { json } from 'body-parser';
 import { debugLog } from './utils/debug';
 
 // Define interfaces for health check response

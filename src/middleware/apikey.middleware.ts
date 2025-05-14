@@ -19,10 +19,12 @@ export function checkApiKey(req: Request, res: Response, next: NextFunction) {
   // If API key authentication is disabled, skip this middleware
   if (!apiKeyConfig.enabled) {
     return next();
+  }else {
+    debugLog(`API key authentication is enabled`, null, "auth");
   }
 
   // Skip authentication for API Explorer and related assets
-  if (req.path === "/api-explorer" || req.path === "/api-docs.json" || req.path.startsWith("/api/axl/methods") || req.path === "/logo.png" || req.path === "/favicon.ico" || req.path === "/api/debug/operations") {
+  if (req.path === "/api-explorer" || req.path === "/api-docs.json"|| req.path === "/health" || req.path.startsWith("/methods") || req.path === "/logo.png" || req.path === "/favicon.ico" || req.path === "/api/debug/operations") {
     debugLog(`Skipping authentication for API Explorer`, null, "auth");
     return next();
   }
