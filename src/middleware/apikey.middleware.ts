@@ -22,9 +22,9 @@ export function checkApiKey(req: Request, res: Response, next: NextFunction) {
   }else {
     debugLog(`API key authentication is enabled`, null, "auth");
   }
-
+  console.log(req.path);
   // Skip authentication for API Explorer and related assets
-  if (req.path === "/api-explorer" || req.path === "/api-docs.json"|| req.path === "/health" || req.path.startsWith("/methods") || req.path === "/logo.png" || req.path === "/favicon.ico" || req.path === "/api/debug/operations") {
+  if (req.path === "/api-explorer" || req.path === "/api-docs.json"|| req.path === "/health" || req.path.startsWith("/methods") || req.path === "/logo.png" || req.path === "/favicon.ico" || req.path === "/debug/operations") {
     debugLog(`Skipping authentication for API Explorer`, null, "auth");
     return next();
   }

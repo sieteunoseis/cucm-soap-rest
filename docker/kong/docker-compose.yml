@@ -19,6 +19,9 @@ services:
       - kong-net
   kong:
     image: kong:latest
+    container_name: kong-api-gateway
+    depends_on:
+      - cucm-rest-api
     environment:
       - KONG_DATABASE=off
       - KONG_DECLARATIVE_CONFIG=/etc/kong/kong.yml
@@ -29,8 +32,8 @@ services:
     volumes:
       - ./kong.yml:/etc/kong/kong.yml
     ports:
-      - "8005:8000"  # Kong proxy
-      - "8006:8001"  # Kong admin API (optional, can be removed in production)
+      - "8000:8000"  # Kong proxy
+      - "8001:8001"  # Kong admin API (optional, can be removed in production)
     restart: always
     networks:
       - kong-net

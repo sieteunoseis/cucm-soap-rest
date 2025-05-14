@@ -9,17 +9,7 @@ services:
       - name: swagger-ui-route
         paths:
           - /
-          - /api-explorer
-          - /api-docs.json
-          - /health
         strip_path: false
-
-      # Public route for the method endpoint (no authentication)
-      - name: public-method-route
-        paths:
-          - /api/axl/method
-        strip_path: false
-        # No authentication plugins for this route
 
       # Route for API endpoints
       - name: api-route
