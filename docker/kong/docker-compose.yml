@@ -10,7 +10,7 @@ services:
       - CUCM_VERSION=${CUCM_VERSION}
       - PORT=3000
       - DATACONTAINERIDENTIFIERTAILS=_data
-      - DEBUG=true
+      - DEBUG=false
       - USE_API_KEY=true
       - API_KEY_NAME=x-api-key
       - API_KEY_LOCATION=header
@@ -33,7 +33,6 @@ services:
       - ./kong.yml:/etc/kong/kong.yml
     ports:
       - "8000:8000"  # Kong proxy
-      - "8001:8001"  # Kong admin API (optional, can be removed in production)
     restart: always
     networks:
       - kong-net

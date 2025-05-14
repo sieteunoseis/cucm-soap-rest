@@ -5,10 +5,16 @@ services:
   - name: cucm-api
     url: http://cucm-rest-api:3000
     routes:
-      # Route for Swagger UI
+      # Route for Swagger UI and API Explorer
       - name: swagger-ui-route
         paths:
           - /
+          - /api-explorer
+          - /api-docs.json
+          - /logo.png
+          - /favicon.ico
+          - /api/debug/operations
+          - /api/setup/methods/
         strip_path: false
 
       # Route for API endpoints
@@ -31,7 +37,6 @@ services:
               hour: 1000
               policy: local
               limit_by: consumer  # Rate limit per API key/consumer
-              redis_timeout: 2000  # If using Redis for distributed rate limiting
               fault_tolerant: true
               hide_client_headers: false
           
@@ -48,16 +53,6 @@ services:
               content_type: ["text/plain", "application/json"]
               cache_ttl: 300
               strategy: memory
-          
-          # Circuit breaker for AXL server protection
-          - name: circuit-breaker
-            config:
-              trip_threshold: 10
-              error_threshold_percentage: 50
-              healthy_interval: 5
-              unhealthy_interval: 10
-              unhealthy_statuses: [429, 500, 503]
-              unhealthy_timeout: 60
 
 consumers:
   # Regular user with standard limits
