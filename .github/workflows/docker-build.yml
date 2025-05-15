@@ -24,11 +24,12 @@ on:
       
       # Test files if they don't affect the build
       - 'test/**'
+      - 'env.example'
       
       # Docker-related files that don't affect the actual container build
       - 'docker/kong/**'
       - 'docker/README.md'
-      
+
   workflow_dispatch:
 
 jobs:
