@@ -1,0 +1,20 @@
+{
+  "summary": "listAppUser Default Example",
+  "description": "Default example generated from AXL Method Explorer for listAppUser",
+  "value": {
+    "searchCriteria": {
+      "userid": ""
+    },
+    "returnedTags": {
+      "userid": "",
+      "presenceGroupName": "",
+      "acceptPresenceSubscription": "",
+      "acceptOutOfDialogRefer": "",
+      "acceptUnsolicitedNotification": "",
+      "allowReplaceHeader": "",
+      "isStandard": ""
+    },
+    "skip": "",
+    "first": ""
+  }
+}
