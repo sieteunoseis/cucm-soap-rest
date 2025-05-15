@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cisco AXL REST API",
-    "version": "2.1.2",
+    "version": "2.2.0",
     "description": "Dynamic REST API for Cisco AXL SOAP operations"
   },
   "servers": [
@@ -83892,6 +83892,14 @@
     }
   },
   "components": {
+    "securitySchemes": {
+      "apiKey": {
+        "type": "apiKey",
+        "name": "x-api-key",
+        "in": "header",
+        "description": "API key for authorization. Required when using Kong API Gateway. Provide your API key in the header parameter 'x-api-key'. For development, you can use: 'cisco-axl-rest-api-dev-key'"
+      }
+    },
     "schemas": {
       "ErrorResponse": {
         "type": "object",
