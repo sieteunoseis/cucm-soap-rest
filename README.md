@@ -31,7 +31,7 @@ Full support for AXL special operations like reset, apply, and do methods.
 ### Template Variables
 The API supports template variables in JSON payloads using the `%%_variable_%%` syntax with `_data` field.
 
-![Template Variables Example](screenshots/template-variables.png)
+![Template Variables Example](screenshots/template-support.png)
 
 
 ## Development
