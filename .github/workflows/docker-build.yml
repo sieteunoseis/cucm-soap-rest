@@ -3,6 +3,32 @@ name: Build and Push Docker Image
 on:
   push:
     branches: [ master ]
+    paths-ignore:
+      # Documentation and markdown files
+      - '**/*.md'
+      - 'docs/**'
+      
+      # Images
+      - 'screenshots/**'
+      - 'public/logo.png'
+      - 'public/favicon.ico'
+      - '**/*.png'
+      - '**/*.jpg'
+      - '**/*.jpeg'
+      - '**/*.gif'
+      - '**/*.svg'
+      - '**/*.webp'
+      
+      # Configuration files that don't affect the build
+      - 'nodemon.json'
+      
+      # Test files if they don't affect the build
+      - 'test/**'
+      
+      # Docker-related files that don't affect the actual container build
+      - 'docker/kong/**'
+      - 'docker/README.md'
+      
   workflow_dispatch:
 
 jobs:
