@@ -75,9 +75,17 @@ Edit `kong.yml` to modify:
 - Cache settings
 - API keys
 
+## Customizing API Examples
+
+See the `examples` documention in the main docker-compose.yml file found in the docker root directory.
+
 ## Troubleshooting
 
 If you encounter issues:
 1. Check container logs: `docker logs kong-api-gateway`
 2. Verify CUCM connectivity: `docker logs cucm-rest-api`
 3. Ensure API keys are correctly configured in requests
+
+## Advanced Usage
+
+For Kong API integration with a database, see the documentation for [Kong Gateway](https://docs.konghq.com/gateway/latest/introduction/what-is-kong-gateway/) for additional setup instructions.

@@ -5,12 +5,14 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
+      - DEBUG=${DEBUG:-false}
       - CUCM_HOST=${CUCM_HOST}
       - CUCM_USER=${CUCM_USER}
       - CUCM_PASS=${CUCM_PASS}
       - CUCM_VERSION=${CUCM_VERSION}
       - PORT=3000
       - DATACONTAINERIDENTIFIERTAILS=_data
+      - USE_API_KEY=${USE_API_KEY:-false}
       - AUTO_SAVE_EXAMPLES=${AUTO_SAVE_EXAMPLES:-false}
       - AUTO_SAVE_EXPLORER=${AUTO_SAVE_EXPLORER:-false}
     restart: unless-stopped

@@ -40,7 +40,7 @@ docker-compose up
 
 ### Production Mode
 
-The production configuration includes restart policy set to "always" for better reliability.
+The production configuration includes restart policy set to "always" for better reliability. This mode is suitable for production environments, however you need to secure the endpoint with HTTPS and authentication. If your environment is not secured, consider using the development mode or the Kong API Gateway integration example provided in the `kong` directory.
 
 ```bash
 docker-compose -f docker-compose.prod.yml up -d
