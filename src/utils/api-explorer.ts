@@ -278,25 +278,11 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
           }
         });
         
-        // Add custom behavior to prevent methods from collapsing when clicked
-        // Wait for Swagger UI to fully load and render
+        // The code that prevented methods from collapsing has been removed
+        // Swagger UI's native toggle functionality will now work properly
+        console.log("Swagger UI initialized - operations can now be expanded and collapsed normally");
         setTimeout(() => {
-          // Add event listeners to operations to prevent collapsing
-          document.addEventListener('click', function(e) {
-            // Find if the click is on an operation heading
-            const opblockSummary = e.target.closest('.opblock-summary');
-            if (opblockSummary) {
-              // Find the parent operation block
-              const opblock = opblockSummary.closest('.opblock');
-              if (opblock) {
-                // Keep operation expanded by removing the 'is-open' class and readding it
-                if (opblock.classList.contains('is-open')) {
-                  // Prevent the default Swagger UI behavior that would collapse it
-                  e.stopPropagation();
-                }
-              }
-            }
-          }, true); // Use capturing phase to intercept before Swagger UI handlers
+          // We could add any other custom behavior here if needed
         }, 1000); // Give Swagger UI time to initialize
       });
     })();
@@ -678,7 +664,7 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
         #back-to-top::after {
           content: 'Back to top';
           position: absolute;
-          top: -35px;
+          top: -60px;
           left: 50%;
           transform: translateX(-50%);
           background-color: rgba(0,0,0,0.7);
@@ -1190,17 +1176,9 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
             onComplete: function() {
               // Add custom behavior when Swagger UI is loaded
               setTimeout(() => {
-                // Prevent operations from collapsing when clicked
-                document.addEventListener('click', function(e) {
-                  const opblockSummary = e.target.closest('.opblock-summary');
-                  if (opblockSummary) {
-                    const opblock = opblockSummary.closest('.opblock');
-                    if (opblock && opblock.classList.contains('is-open')) {
-                      // Prevent the operation from collapsing
-                      e.stopPropagation();
-                    }
-                  }
-                }, true);
+                // The code that prevented methods from collapsing has been removed
+                // Swagger UI's native toggle functionality will now work properly
+                console.log("API Explorer initialized - operations can now be expanded and collapsed normally");
               }, 1000);
             }
           });

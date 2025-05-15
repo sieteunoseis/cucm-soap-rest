@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cisco AXL REST API",
-    "version": "1.17.0",
+    "version": "2.1.0",
     "description": "Dynamic REST API for Cisco AXL SOAP operations"
   },
   "servers": [

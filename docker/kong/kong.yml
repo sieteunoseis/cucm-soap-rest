@@ -13,8 +13,10 @@ services:
           - /api-docs.json
           - /logo.png
           - /favicon.ico
-          - /api/debug/operations
           - /api/setup/methods/
+          - /api/debug/operations
+          - /api/debug/refresh-examples
+          - /api/debug/reload-ui
         strip_path: false
 
       # Route for API endpoints
