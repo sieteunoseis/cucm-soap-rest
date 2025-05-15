@@ -8,6 +8,8 @@ export interface AppError extends Error {
   originalBody?: string;  // The original request body before any cleaning
   cleanedBody?: string;   // The cleaned body after our preprocessing
   parseError?: Error;     // The original parse error
+  operation?: string;     // The AXL operation being executed
+  params?: any;           // The parameters used for the operation
 }
 
 export const errorHandler = (
@@ -16,6 +18,13 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
+  // For better debugging
+  const { debugLog } = require('../utils/debug');
+  debugLog(`Error in errorHandler: ${err.name} - ${err.message}`, null, 'error');
+  if (err.stack) {
+    debugLog(`Stack trace: ${err.stack}`, null, 'error');
+  }
+  
   // Set appropriate status code
   const statusCode = err.statusCode || 500;
 
@@ -24,9 +33,9 @@ export const errorHandler = (
                       err.message.includes('JSON');
 
   if (isJsonError) {
-    console.error(`[Error] 400 - JSON Syntax Error: ${err.message}`);
-    console.error(`Request path: ${req.path}`);
-    console.error(`Request method: ${req.method}`);
+    debugLog(`[Error] 400 - JSON Syntax Error: ${err.message}`, null, 'error');
+    debugLog(`Request path: ${req.path}`, null, 'error');
+    debugLog(`Request method: ${req.method}`, null, 'error');
 
     // Special handling for apply* endpoints
     if (req.path.startsWith('/api/axl/apply')) {
@@ -123,13 +132,15 @@ export const errorHandler = (
     });
   }
 
-  console.error(`[Error] ${statusCode} - ${err.name}: ${err.message}`);
+  debugLog(`[Error] ${statusCode} - ${err.name}: ${err.message}`, null, 'error');
 
   // Check if error is from SOAP/AXL
   const isSoapError = err.message && (
     err.message.includes('SOAP') ||
     err.message.includes('AXL') ||
-    err.message.includes('Error:')
+    err.message.includes('Error:') ||
+    err.name === 'AXL_ERROR' ||
+    (err.details && err.details.axlError)
   );
 
   // Format the error message for better readability
@@ -140,13 +151,67 @@ export const errorHandler = (
     if (matches && matches[1]) {
       errorMessage = matches[1].trim();
     }
+    
+    // Check for specific AXL error patterns
+    if (err.details && err.details.axlError && err.details.axlError.axlmessage) {
+      // Use the more specific axlmessage if available
+      errorMessage = err.details.axlError.axlmessage;
+    } else if (err.details && err.details.detail && err.details.detail.axlError) {
+      // Handle nested axlError structure
+      errorMessage = err.details.detail.axlError.axlmessage || errorMessage;
+    }
   }
 
-  res.status(statusCode).json({
-    error: err.code || err.name,
-    message: errorMessage,
-    statusCode,
-    path: req.path,
-    details: err.details || undefined
-  });
+  // Ensure we have a string message not an object
+  if (typeof errorMessage === 'object') {
+    try {
+      errorMessage = JSON.stringify(errorMessage);
+    } catch (e) {
+      errorMessage = 'Error occurred (no message details available)';
+    }
+  }
+  
+  // Format details if they're an object
+  let details = err.details;
+  if (details && typeof details === 'object') {
+    try {
+      // Keep details as an object for JSON response, but log a string version
+      debugLog(`Error details: ${JSON.stringify(details, null, 2)}`, null, 'error');
+    } catch (e) {
+      details = 'Error details not serializable';
+    }
+  }
+  
+  // Format params if they're an object
+  let params = err.params;
+  if (params && typeof params === 'object') {
+    try {
+      // Keep params as an object for JSON response, but log a string version
+      debugLog(`Error params: ${JSON.stringify(params, null, 2)}`, null, 'error');
+    } catch (e) {
+      params = 'Error params not serializable';
+    }
+  }
+
+  // Always respond with JSON, never with HTML
+  try {
+    res.status(statusCode).json({
+      error: err.code || err.name || 'ERROR',
+      message: errorMessage,
+      statusCode,
+      path: req.path,
+      details: details || undefined,
+      operation: err.operation || undefined,
+      params: params || undefined
+    });
+  } catch (responseError) {
+    // If JSON response fails, send a plain text response as fallback
+    debugLog(`Failed to send JSON error response: ${responseError}`, null, 'error');
+    res.status(statusCode).set('Content-Type', 'application/json')
+      .send(JSON.stringify({
+        error: 'ERROR',
+        message: 'An error occurred while processing your request',
+        statusCode
+      }));
+  }
 };

@@ -3,6 +3,7 @@ import axlService from "cisco-axl";
 import { axlConfig } from "../config/axl.config";
 import { mapAxlMethodToHttp, getResourceFromMethod, getResourceTagFromMethod } from "../utils/method-mapper";
 import { swaggerSpec } from "../utils/api-explorer";
+import { AppError } from "../middleware/error.middleware";
 import fs from "fs";
 import path from "path";
 import { processTemplateVariables, hasTemplateVariables } from "../utils/template-processor";
@@ -164,7 +165,18 @@ const axlClient = new axlService(axlConfig.host, axlConfig.user, axlConfig.pass,
 // Handler for executing AXL operations
 async function executeAxlOperation(req: Request, res: Response, next: NextFunction) {
   try {
+    // Add debug logging for the entire request
+    debugLog(`Executing AXL operation with request: ${JSON.stringify({
+      path: req.path,
+      params: req.params,
+      method: req.method,
+      body: req.body
+    }, null, 2)}`, null, 'axl');
+    
     const method = req.params.method as string;
+    
+    // Debug the incoming method parameter - this is critical for troubleshooting
+    debugLog(`Executing AXL operation with method: ${method}`, null, 'axl');
 
     if (!method) {
       return res.status(400).json({
@@ -633,6 +645,10 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
       
       // Execute the AXL operation
       debugLog(`Executing operation ${method} with tags:`, tags);
+      
+      // We'll handle all operations the same way, with no special cases
+      
+      // For all other operations, proceed as normal
       const result = await axlClient.executeOperation(method, tags);
       if (!result) {
         debugLog(`No result returned for operation ${method}`);
@@ -705,13 +721,27 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
       if (execError.response && execError.response.data) {
         const soapError = execError.response.data;
 
+        // For better debugging
+        console.error(`AXL SOAP Error: ${JSON.stringify(soapError, null, 2)}`);
+
         // Check if it's a structured SOAP fault
         if (soapError.faultcode && soapError.faultstring) {
-          return res.status(400).json({
+          // Set appropriate status code based on error message
+          let statusCode = 400;
+          
+          // Check for "not found" type errors
+          if (soapError.faultstring.includes("not found") || 
+              (soapError.detail && soapError.detail.axlError && 
+               soapError.detail.axlError.axlmessage && 
+               soapError.detail.axlError.axlmessage.includes("not found"))) {
+            statusCode = 404;
+          }
+          
+          return res.status(statusCode).json({
             error: "AXL_ERROR",
             message: soapError.faultstring,
             detail: soapError.detail,
-            statusCode: 400,
+            statusCode: statusCode,
             operation: method,
             params: tags,
           });
@@ -727,20 +757,140 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
         }
       }
 
-      throw execError; // Re-throw to be caught by the outer catch block
+      // If we reach here, handle the error directly instead of throwing
+      // This avoids having to catch the error again in the outer catch block
+      // Log the full error for debugging
+      debugLog(`Error executing operation ${method}: ${JSON.stringify(execError, null, 2)}`, null, 'error');
+      
+      // Handle all SOAP/AXL errors in a consistent way
+      if (execError.response && execError.response.data) {
+        // Extract SOAP fault information
+        const soapError = execError.response.data;
+        
+        // Debug error for troubleshooting
+        debugLog(`SOAP error from AXL API: ${JSON.stringify(soapError, null, 2)}`, null, 'error');
+        
+        // Get the error message from the soapfault
+        let errorMessage = "An error occurred while executing the operation";
+        
+        // Extract error message from fault string if available
+        if (soapError.faultstring) {
+          debugLog(`Found faultstring in SOAP error: ${soapError.faultstring}`, null, 'error');
+          errorMessage = soapError.faultstring;
+        }
+        
+        // Prepare response object - always using 400 status as requested
+        const errorResponse = {
+          error: "AXL_ERROR",
+          message: errorMessage,
+          statusCode: 400,
+          operation: method,
+          details: soapError
+        };
+        
+        // Log the response we're about to send
+        debugLog(`Sending error response: ${JSON.stringify(errorResponse, null, 2)}`, null, 'error');
+        
+        // Return a consistent JSON response with 400 status (Bad Request)
+        return res.status(400).json(errorResponse);
+      }
+      
+      // Check if execError is the SOAP error itself (sometimes it's directly the error data)
+      if (execError.faultcode && execError.faultstring) {
+        debugLog(`Found direct SOAP error with faultstring: ${execError.faultstring}`, null, 'error');
+        
+        return res.status(400).json({
+          error: "AXL_ERROR",
+          message: execError.faultstring,
+          statusCode: 400,
+          operation: method,
+          details: execError
+        });
+      }
+
+      // For any other errors, return a 400 error
+      return res.status(400).json({
+        error: "AXL_ERROR",
+        message: execError.message || "An error occurred while executing the operation",
+        statusCode: 400,
+        operation: method
+      });
     }
   } catch (error: any) {
-    // Enhance the error with status code
-    if (error.message && error.message.includes("not found")) {
-      error.statusCode = 404;
-    } else if (error.message && error.message.includes("already exists")) {
-      error.statusCode = 409;
-    } else if (error.message && (error.message.includes("invalid") || error.message.includes("missing required"))) {
-      error.statusCode = 400;
-    } else {
-      error.statusCode = 500;
+    debugLog(`Error in outer catch block: ${error.message || JSON.stringify(error)}`, null, 'error');
+    
+    // Reference to current method
+    const currentMethod = req.params.method || "unknown";
+    
+    // Handle SOAP/AXL errors in a consistent way
+    if (error.response && error.response.data) {
+      // Extract SOAP fault information
+      const soapError = error.response.data;
+      
+      // Debug error for troubleshooting
+      debugLog(`Outer catch - SOAP error from AXL API: ${JSON.stringify(soapError, null, 2)}`, null, 'error');
+      
+      // Get the error message from the soapfault
+      let errorMessage = "An error occurred while executing the operation";
+      
+      // Extract error message from fault string if available
+      if (soapError.faultstring) {
+        debugLog(`Outer catch - Found faultstring in SOAP error: ${soapError.faultstring}`, null, 'error');
+        errorMessage = soapError.faultstring;
+      }
+      
+      // Prepare response object - always using 400 status as requested
+      const errorResponse = {
+        error: "AXL_ERROR",
+        message: errorMessage,
+        statusCode: 400,
+        operation: currentMethod,
+        details: soapError
+      };
+      
+      // Log the response we're about to send
+      debugLog(`Outer catch - Sending error response: ${JSON.stringify(errorResponse, null, 2)}`, null, 'error');
+      
+      // Return a consistent JSON response with 400 status (Bad Request)
+      return res.status(400).json(errorResponse);
     }
-    next(error);
+    
+    // Check if error is the SOAP error itself
+    if (error.faultcode && error.faultstring) {
+      debugLog(`Outer catch - Found direct SOAP error with faultstring: ${error.faultstring}`, null, 'error');
+      
+      return res.status(400).json({
+        error: "AXL_ERROR",
+        message: error.faultstring,
+        statusCode: 400,
+        operation: currentMethod,
+        details: error
+      });
+    }
+    
+    // For general errors with a message
+    if (error.message) {
+      return res.status(400).json({
+        error: "AXL_ERROR",
+        message: error.message,
+        statusCode: 400,
+        operation: currentMethod
+      });
+    }
+    
+    // Default fallback for any other errors
+    debugLog(`Unhandled error in executeAxlOperation: ${JSON.stringify({
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    }, null, 2)}`, null, 'error');
+    
+    return res.status(400).json({
+      error: "AXL_ERROR",
+      message: "An error occurred while executing the operation",
+      statusCode: 400,
+      operation: currentMethod
+    });
   }
 }
 
