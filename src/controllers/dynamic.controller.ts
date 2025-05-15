@@ -9,6 +9,9 @@ import { processTemplateVariables, hasTemplateVariables } from "../utils/templat
 import { generatePathDescription, generateExamples, generateSummary, generateTags } from "../utils/swagger-helpers";
 import { packageInfo } from "../utils/version";
 import { debugLog } from "../utils/debug";
+import { saveRequestAsExample } from "../utils/example-saver";
+import { saveExplorerAsExample } from "../utils/explorer-saver";
+import { getExampleForResource } from "../utils/file-examples";
 
 // Function to add paths to Swagger spec
 function addPathToSwagger(
@@ -51,9 +54,20 @@ function addPathToSwagger(
 
   // Add request body for non-GET methods with examples
   if (httpMethod.toLowerCase() !== 'get') {
-    // Generate examples using our utility function
-    // Pass the method name for special handling of apply operations
-    const examples = generateExamples(httpMethod, resourceTag, method);
+    // Extract the resource from the path to look for resource-specific examples
+    const resource = typeof path === 'string' ? path.split('/')[3] || '' : '';
+    debugLog(`[addPathToSwagger] Looking for examples: resource=${resource}, httpMethod=${httpMethod}, method=${method}`, null, 'swagger');
+    
+    // First try to get specific examples from files, falling back to generated examples
+    let examples;
+    if (resource) {
+      // Try to get examples from files first
+      examples = getExampleForResource(resource, httpMethod);
+      debugLog(`[addPathToSwagger] File examples for ${resource}/${httpMethod}: ${Object.keys(examples).length} examples found`, null, 'swagger');
+    } else {
+      // Fall back to generated examples
+      examples = generateExamples(httpMethod, resourceTag, method);
+    }
     
     // Delete operations may have a body, but it's not required
     // Apply operations should also have optional body
@@ -629,7 +643,48 @@ async function executeAxlOperation(req: Request, res: Response, next: NextFuncti
       } else {
         debugLog(`Operation ${method} executed successfully, result (truncated):`, 
           typeof result === 'object' ? { ...result } : result);
-        // Return the result
+        
+        // Auto-save example if enabled
+        const autoSaveExamples = process.env.AUTO_SAVE_EXAMPLES === 'true';
+        if (autoSaveExamples && req.body) {
+          try {
+            // Save the request as an example
+            const saveResult = saveRequestAsExample(method, req.body);
+            debugLog(`Example saving result:`, saveResult);
+            
+            // Include the example saving status in the response
+            // Make sure we handle string/primitive results correctly
+            let responseWithExample;
+            
+            if (typeof result === 'string' || typeof result === 'number' || typeof result === 'boolean') {
+              // For primitive results, create an object with a 'result' field
+              responseWithExample = {
+                result: result,
+                _meta: {
+                  exampleSaved: saveResult.status === 'success',
+                  exampleMessage: saveResult.message
+                }
+              };
+            } else {
+              // For object results, add the _meta field
+              responseWithExample = {
+                ...result,
+                _meta: {
+                  exampleSaved: saveResult.status === 'success',
+                  exampleMessage: saveResult.message
+                }
+              };
+            }
+            
+            // Return the result with example metadata
+            return res.status(200).json(responseWithExample);
+          } catch (exampleError) {
+            console.error(`Error saving example for ${method}:`, exampleError);
+            // Continue with normal response if example saving fails
+          }
+        }
+        
+        // Return the regular result
         res.status(200).json(result);
       }
     } catch (execError: any) {
@@ -754,7 +809,33 @@ async function getMethodParameters(req: Request, res: Response, next: NextFuncti
 
     // Get the tags structure for this operation
     const tags = await axlClient.getOperationTags(method);
+    
+    // Auto-save explorer examples if enabled
+    const autoSaveExplorer = process.env.AUTO_SAVE_EXPLORER === 'true';
+    if (autoSaveExplorer && tags) {
+      try {
+        // Save the explorer parameters as an example
+        const saveResult = saveExplorerAsExample(method, tags);
+        debugLog(`Explorer example saving result:`, saveResult);
+        
+        // Include the example saving status in the response
+        const responseWithMeta = {
+          method,
+          parameters: tags,
+          _meta: {
+            exampleSaved: saveResult.status === 'success',
+            exampleMessage: saveResult.message
+          }
+        };
+        
+        return res.status(200).json(responseWithMeta);
+      } catch (exampleError) {
+        console.error(`Error saving explorer example for ${method}:`, exampleError);
+        // Continue with normal response if example saving fails
+      }
+    }
 
+    // Return standard response without metadata
     res.status(200).json({
       method,
       parameters: tags,
@@ -951,7 +1032,99 @@ For example: \`/api/axl/${route}/name/ABC%\` will find all items where the name 
         routes,
       });
     });
+    
+    // Add an endpoint to manually refresh Swagger documentation with latest examples
+    app.get("/api/debug/refresh-examples", async (req: Request, res: Response) => {
+      try {
+        debugLog("Manual refresh of Swagger documentation requested", null, 'swagger');
+        
+        // Clear the existing paths to force a complete rebuild
+        // This ensures we don't keep any stale examples
+        swaggerSpec.paths = {};
+        debugLog("Cleared existing swagger paths", null, 'swagger');
+        
+        // Re-register all routes to rebuild the swagger file
+        debugLog("Re-registering all routes to rebuild swagger documentation", null, 'swagger');
+        
+        // First sort operations so that list* operations are processed before get* operations
+        const sortedOperations = [...allOperations].sort((a, b) => {
+          if (a.toLowerCase().startsWith('list') && b.toLowerCase().startsWith('get')) return -1;
+          if (b.toLowerCase().startsWith('list') && a.toLowerCase().startsWith('get')) return 1;
+          return a.localeCompare(b);
+        });
+        
+        // Re-create all routes in the swagger documentation
+        sortedOperations.forEach((operation: string) => {
+          const { httpMethod, route } = mapAxlMethodToHttp(operation);
+          const routePath = `/api/axl/${route}`;
+          
+          debugLog(`Re-registering route: ${httpMethod.toUpperCase()} ${routePath}`, null, 'swagger');
+          
+          // Add paths for all operations
+          if (httpMethod === "get" && !operation.toLowerCase().startsWith('list')) {
+            // For get* operations, only add the parameterized routes
+            const paramRoutePath = `${routePath}/{parameter}/{value}`;
+            addPathToSwagger(operation, paramRoutePath, httpMethod, `Execute ${operation} AXL operation (requires parameter)`);
+          } else {
+            // For all other operations, add both base and parameterized routes
+            addPathToSwagger(operation, routePath, httpMethod, `Execute ${operation} AXL operation`);
+            
+            if (httpMethod === "patch" || httpMethod === "delete") {
+              const paramRoutePath = `${routePath}/{parameter}/{value}`;
+              addPathToSwagger(operation, paramRoutePath, httpMethod, `Execute ${operation} AXL operation with any specified parameter type`);
+            }
+          }
+        });
+        
+        // Force update of the swagger file to include latest examples
+        await updateSwaggerFile(allOperations);
+        
+        res.status(200).json({
+          status: "success",
+          message: "Swagger documentation refreshed with latest examples",
+          pathsCount: Object.keys(swaggerSpec.paths).length,
+          timestamp: new Date().toISOString()
+        });
+      } catch (error) {
+        console.error("Error refreshing Swagger documentation:", error);
+        res.status(500).json({
+          status: "error",
+          message: "Failed to refresh Swagger documentation",
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    });
 
+    // Add a lightweight endpoint to notify the UI to refresh
+    app.get("/api/debug/reload-ui", (req: Request, res: Response) => {
+      res.setHeader('Content-Type', 'text/html');
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Reloading Swagger UI</title>
+          <style>
+            body { font-family: sans-serif; padding: 20px; text-align: center; }
+            .message { margin: 20px 0; font-size: 18px; }
+            .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
+            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+          </style>
+        </head>
+        <body>
+          <h1>Reloading Swagger UI</h1>
+          <div class="spinner"></div>
+          <div class="message">The Swagger UI will reload in 2 seconds...</div>
+          <script>
+            // Wait 2 seconds, then reload the main page
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 2000);
+          </script>
+        </body>
+        </html>
+      `);
+    });
+    
     // After you register all routes, update the Swagger file
     await updateSwaggerFile(allOperations);
   } catch (error) {
@@ -963,13 +1136,27 @@ For example: \`/api/axl/${route}/name/ABC%\` will find all items where the name 
 // After you register all routes, update the Swagger file
 async function updateSwaggerFile(operations: string[]) {
   try {
+    // Force refresh to pick up any new examples
+    const forceRefresh = process.env.AUTO_SAVE_EXAMPLES === 'true' || process.env.AUTO_SAVE_EXPLORER === 'true';
+    
     // Read the existing swagger file
     const swaggerPath = path.join(process.cwd(), "swagger-output.json");
 
-    // If the file doesn't exist, create a basic structure
+    // Always create a new structure to ensure we include all latest examples
     let swaggerFile: any;
     try {
-      swaggerFile = JSON.parse(fs.readFileSync(swaggerPath, "utf8"));
+      // Even if the file exists, use the in-memory swaggerSpec instead
+      // This ensures we include all the latest examples
+      debugLog("Using in-memory swagger specs to include latest examples", null, 'swagger');
+      
+      // Clone the current swaggerSpec to avoid reference issues
+      swaggerFile = JSON.parse(JSON.stringify({
+        openapi: swaggerSpec.openapi,
+        info: swaggerSpec.info,
+        servers: swaggerSpec.servers,
+        paths: swaggerSpec.paths,
+        components: swaggerSpec.components
+      }));
     } catch (readError) {
       debugLog("Creating new swagger file", null, 'swagger');
       swaggerFile = {
@@ -1060,9 +1247,20 @@ async function updateSwaggerFile(operations: string[]) {
 
       // If it's a non-GET method, add a request body with examples
       if (httpMethod !== "get") {
-        // Create examples using utility function
-        // Pass the operation name for special handling of apply operations
-        const examples = generateExamples(httpMethod, resourceTag, operation);
+        // Extract resource name from path for looking up examples
+        const resource = typeof routePath === 'string' ? routePath.split('/')[3] || '' : '';
+        debugLog(`[updateSwaggerFile] Looking for examples: resource=${resource}, httpMethod=${httpMethod}, operation=${operation}`, null, 'swagger');
+        
+        // Try to get specific examples from files first, falling back to generated examples
+        let examples;
+        if (resource) {
+          // Look for examples in the file system first
+          examples = getExampleForResource(resource, httpMethod);
+          debugLog(`[updateSwaggerFile] File examples for ${resource}/${httpMethod}: ${Object.keys(examples).length} examples found`, null, 'swagger');
+        } else {
+          // Fall back to generated examples
+          examples = generateExamples(httpMethod, resourceTag, operation);
+        }
         
         // Delete operations may have a body, but it's not required
         // Apply operations should also have optional body

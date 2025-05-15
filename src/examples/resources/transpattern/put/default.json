@@ -1,0 +1,41 @@
+{
+  "summary": "addTransPattern Default Example",
+  "description": "Default example generated from AXL Method Explorer for addTransPattern",
+  "value": {
+    "transPattern": {
+      "pattern": "",
+      "description": "",
+      "usage": "",
+      "routePartitionName": "",
+      "blockEnable": "",
+      "calledPartyTransformationMask": "",
+      "callingPartyTransformationMask": "",
+      "useCallingPartyPhoneMask": "",
+      "callingPartyPrefixDigits": "",
+      "dialPlanName": "",
+      "digitDiscardInstructionName": "",
+      "patternUrgency": "",
+      "prefixDigitsOut": "",
+      "routeFilterName": "",
+      "callingLinePresentationBit": "",
+      "callingNamePresentationBit": "",
+      "connectedLinePresentationBit": "",
+      "connectedNamePresentationBit": "",
+      "patternPrecedence": "",
+      "provideOutsideDialtone": "",
+      "callingPartyNumberingPlan": "",
+      "callingPartyNumberType": "",
+      "calledPartyNumberingPlan": "",
+      "calledPartyNumberType": "",
+      "callingSearchSpaceName": "",
+      "resourcePriorityNamespaceName": "",
+      "routeNextHopByCgpn": "",
+      "routeClass": "",
+      "callInterceptProfileName": "",
+      "releaseClause": "",
+      "useOriginatorCss": "",
+      "dontWaitForIDTOnSubsequentHops": "",
+      "isEmergencyServiceNumber": ""
+    }
+  }
+}

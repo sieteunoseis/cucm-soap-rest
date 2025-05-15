@@ -38,3 +38,4 @@ tmp/
 # Claude specific
 *.claude
 CLAUDE.md
+CLAUDE_NOTES.md

@@ -1,0 +1,12 @@
+{
+  "summary": "Update Line - Direct parameters",
+  "description": "For update operations, provide parameters directly without a resource wrapper",
+  "value": {
+    "pattern": "1001",
+    "routePartitionName": "INTERNAL-PT",
+    "alertingName": "Tom Smith",
+    "asciiAlertingName": "Tom Smith",
+    "description": "Tom Smith",
+    "uuid": "12345678-1234-1234-1234-123456789012"
+  }
+}

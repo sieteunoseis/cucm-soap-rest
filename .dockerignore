@@ -37,4 +37,8 @@ LICENSE
 docs
 test
 *.md
-!CLAUDE.md
+
+# Claude specific - always ignore
+CLAUDE.md
+CLAUDE_NOTES.md
+*.claude

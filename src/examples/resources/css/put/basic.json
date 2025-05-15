@@ -1,0 +1,17 @@
+{
+  "summary": "Add CSS - With css wrapper",
+  "description": "For add operations, use the css wrapper - required for addCss",
+  "value": {
+    "css": {
+      "description": "",
+      "members": {
+        "member": {
+          "routePartitionName": "",
+          "index": ""
+        }
+      },
+      "partitionUsage": "",
+      "name": "AXL-REST-API-CSS"
+    }
+  }
+}

@@ -11,4 +11,9 @@ services:
       - CUCM_VERSION=${CUCM_VERSION}
       - PORT=3000
       - DATACONTAINERIDENTIFIERTAILS=_data
+      - AUTO_SAVE_EXAMPLES=${AUTO_SAVE_EXAMPLES:-false}
+      - AUTO_SAVE_EXPLORER=${AUTO_SAVE_EXPLORER:-false}
     restart: always
+    volumes:
+      # Mount examples directory to allow customization without rebuilding the image
+      - ./examples:/usr/src/app/src/examples

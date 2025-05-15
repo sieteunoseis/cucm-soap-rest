@@ -1,0 +1,13 @@
+{
+  "summary": "Add Line - With line wrapper",
+  "description": "For add operations, use the line wrapper - required for addLine",
+  "value": {
+    "line": {
+      "pattern": "\\+13758084002",
+      "routePartitionName": "INTERNAL-PT",
+      "alertingName": "Tom Smith",
+      "asciiAlertingName": "Tom Smith",
+      "description": "Tom Smith"
+    }
+  }
+}

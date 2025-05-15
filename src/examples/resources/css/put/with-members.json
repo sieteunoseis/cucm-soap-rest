@@ -1,0 +1,27 @@
+{
+  "summary": "Add CSS - With members",
+  "description": "Create a CSS with partition members for call routing",
+  "value": {
+    "css": {
+      "name": "EXAMPLE-CSS",
+      "description": "Example CSS with members",
+      "members": {
+        "member": [
+          {
+            "routePartitionName": "INTERNAL-PT",
+            "index": "1"
+          },
+          {
+            "routePartitionName": "EXTERNAL-PT",
+            "index": "2"
+          },
+          {
+            "routePartitionName": "EMERGENCY-PT",
+            "index": "3"
+          }
+        ]
+      },
+      "partitionUsage": ""
+    }
+  }
+}

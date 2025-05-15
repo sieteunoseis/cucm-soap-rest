@@ -1,0 +1,14 @@
+{
+  "summary": "Update Line - With template variables",
+  "description": "For update operations with template variables - no wrapper needed",
+  "value": {
+    "pattern": "%%_number_%%",
+    "description": "Line for %%_username_%%",
+    "alertingName": "%%_username_%%",
+    "routePartitionName": "INTERNAL-PT",
+    "_data": {
+      "number": "1001",
+      "username": "Example User"
+    }
+  }
+}

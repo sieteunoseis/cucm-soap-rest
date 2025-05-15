@@ -1,0 +1,10 @@
+{
+  "summary": "Update Route Partition - Direct parameters",
+  "description": "For update operations, provide parameters directly without a resource wrapper",
+  "value": {
+    "name": "AXL-REST-API-PT",
+    "description": "Updated via PATCH request",
+    "useOriginatingDeviceTimeZone": "true",
+    "uuid": "12345678-1234-1234-1234-123456789012"
+  }
+}

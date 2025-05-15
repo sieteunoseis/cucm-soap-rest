@@ -1,4 +1,6 @@
-import { getResourceTagFromMethod } from "./method-mapper";
+import { getResourceTagFromMethod, getResourceFromMethod } from "./method-mapper";
+import fs from "fs";
+import path from "path";
 
 /**
  * Generates a path description for a Swagger endpoint based on HTTP method and operation
@@ -104,6 +106,97 @@ export function generatePathDescription(
 }
 
 /**
+ * Gets examples from filesystem for a specific resource and method
+ * @param resource The resource name (line, phone, etc.)
+ * @param httpMethod The HTTP method (put, patch, delete, etc.)
+ * @returns Object containing examples or null if not found
+ */
+function getFileBasedExamples(resource: string, httpMethod: string): any | null {
+  const examplesDir = path.join(process.cwd(), 'src', 'examples');
+  const resourcePath = path.join(examplesDir, 'resources', resource.toLowerCase(), httpMethod.toLowerCase());
+  
+  // Check if resource-specific directory exists
+  if (!fs.existsSync(resourcePath)) {
+    return null;
+  }
+  
+  try {
+    const files = fs.readdirSync(resourcePath).filter(file => file.endsWith('.json'));
+    if (files.length === 0) {
+      return null;
+    }
+    
+    const examples: any = {};
+    
+    files.forEach((file, index) => {
+      try {
+        const content = fs.readFileSync(path.join(resourcePath, file), 'utf8');
+        const example = JSON.parse(content);
+        examples[`example${index + 1}`] = {
+          summary: example.summary,
+          description: example.description,
+          value: example.value
+        };
+      } catch (err) {
+        console.error(`Error reading example file ${file}:`, err);
+      }
+    });
+    
+    return Object.keys(examples).length > 0 ? examples : null;
+  } catch (err) {
+    console.error(`Error reading examples directory for ${resource}/${httpMethod}:`, err);
+    return null;
+  }
+}
+
+/**
+ * Gets generic examples from filesystem for an HTTP method
+ * @param httpMethod The HTTP method (put, patch, delete, etc.)
+ * @returns Object containing examples or null if not found
+ */
+function getGenericFileExamples(httpMethod: string): any | null {
+  const examplesDir = path.join(process.cwd(), 'src', 'examples');
+  const genericPath = path.join(examplesDir, 'generic', httpMethod.toLowerCase());
+  
+  // Check if generic directory exists
+  if (!fs.existsSync(genericPath)) {
+    return null;
+  }
+  
+  try {
+    const files = fs.readdirSync(genericPath).filter(file => file.endsWith('.json'));
+    if (files.length === 0) {
+      return null;
+    }
+    
+    const examples: any = {};
+    
+    files.forEach((file, index) => {
+      try {
+        const content = fs.readFileSync(path.join(genericPath, file), 'utf8');
+        const example = JSON.parse(content);
+        
+        // For generic examples, we need to replace "resourceTag" with the actual resource tag
+        const exampleValue = JSON.parse(JSON.stringify(example.value)); // Deep clone
+        
+        examples[`example${index + 1}`] = {
+          summary: example.summary,
+          description: example.description,
+          value: exampleValue
+        };
+      } catch (err) {
+        console.error(`Error reading generic example file ${file}:`, err);
+      }
+    });
+    
+    return Object.keys(examples).length > 0 ? examples : null;
+  } catch (err) {
+    console.error(`Error reading generic examples directory for ${httpMethod}:`, err);
+    return null;
+  }
+}
+
+/**
  * Generates examples for request bodies based on HTTP method and resource
  * @param httpMethod The HTTP method (put, patch, delete, etc.)
  * @param resourceTag The camelCase resource tag
@@ -115,6 +208,10 @@ export function generateExamples(
   resourceTag: string,
   method?: string
 ): any {
+  // Extract the resource name from the method if available
+  const resource = method ? getResourceFromMethod(method) : '';
+  
+  // First check for special operations
   if (method && (method.toLowerCase().startsWith("apply") || 
                method.toLowerCase().startsWith("reset") || 
                method.toLowerCase().startsWith("do"))) {
@@ -158,7 +255,7 @@ export function generateExamples(
     
     // Add example for doLdapSync
     if (method.toLowerCase() === "doldapsync") {
-      examples.example3 = {
+      examples.example4 = {
         summary: "LDAP Sync with sync parameter",
         description: "Example for LDAP synchronization with sync flag",
         value: {
@@ -180,7 +277,28 @@ export function generateExamples(
     
     return examples;
   } else if (httpMethod.toLowerCase() === "put") {
-    // Examples for PUT operations (add) - requires resource wrapper
+    // Look for resource-specific examples first
+    const fileExamples = resource ? getFileBasedExamples(resource, httpMethod) : null;
+    if (fileExamples) {
+      return fileExamples;
+    }
+    
+    // Try to get generic file examples
+    const genericExamples = getGenericFileExamples(httpMethod);
+    if (genericExamples) {
+      // Replace "resourceTag" placeholder with actual resource tag
+      Object.keys(genericExamples).forEach(key => {
+        const example = genericExamples[key];
+        if (example.value && example.value.resourceTag) {
+          const content = example.value.resourceTag;
+          delete example.value.resourceTag;
+          example.value[resourceTag] = content;
+        }
+      });
+      return genericExamples;
+    }
+    
+    // Fallback to hardcoded examples
     return {
       example1: {
         summary: "With resource wrapper (required) [Generic]",
@@ -195,7 +313,19 @@ export function generateExamples(
       }
     };
   } else if (httpMethod.toLowerCase() === "patch") {
-    // Examples for PATCH operations (update) - direct parameters
+    // Look for resource-specific examples first
+    const fileExamples = resource ? getFileBasedExamples(resource, httpMethod) : null;
+    if (fileExamples) {
+      return fileExamples;
+    }
+    
+    // Try to get generic file examples
+    const genericExamples = getGenericFileExamples(httpMethod);
+    if (genericExamples) {
+      return genericExamples;
+    }
+    
+    // Fallback to hardcoded examples
     return {
       example1: {
         summary: "Direct parameters (no wrapper) [Generic]",
@@ -208,7 +338,19 @@ export function generateExamples(
       }
     };
   } else if (httpMethod.toLowerCase() === "delete") {
-    // Examples for DELETE operations - provide identifier options
+    // Look for resource-specific examples first
+    const fileExamples = resource ? getFileBasedExamples(resource, httpMethod) : null;
+    if (fileExamples) {
+      return fileExamples;
+    }
+    
+    // Try to get generic file examples
+    const genericExamples = getGenericFileExamples(httpMethod);
+    if (genericExamples) {
+      return genericExamples;
+    }
+    
+    // Fallback to hardcoded examples
     return {
       example1: {
         summary: "Identifier options for DELETE",
@@ -228,6 +370,18 @@ export function generateExamples(
       }
     };
   } else {
+    // Look for resource-specific examples first
+    const fileExamples = resource ? getFileBasedExamples(resource, httpMethod) : null;
+    if (fileExamples) {
+      return fileExamples;
+    }
+    
+    // Try to get generic file examples
+    const genericExamples = getGenericFileExamples(httpMethod);
+    if (genericExamples) {
+      return genericExamples;
+    }
+    
     // Generic examples for other methods
     return {
       example1: {

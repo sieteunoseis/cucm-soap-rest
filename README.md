@@ -11,6 +11,23 @@ A dynamic REST API built with Express and TypeScript that provides a RESTful int
 - **Template Variables**: Support for JSON template variables using the `%%_variable_%%` syntax with `_data` field
 - **Cisco Branding**: Includes Cisco favicon and logo in the UI
 
+## Screenshots
+
+### Dynamic Endpoints Generation
+The API automatically parses AXL WSDL files to build RESTful endpoints with appropriate HTTP methods based on AXL operation names.
+
+![Dynamic Endpoints](screenshots/dynamic-endpoints.png)
+
+### AXL Method Explorer
+Built-in method explorer helps you discover available AXL methods and their required parameters.
+
+![AXL Method Explorer](screenshots/axl-method-explorer.png)
+
+### Special Operations Support
+Full support for AXL special operations like reset, apply, and do methods.
+
+![Reset Phone Example](screenshots/reset-phone.png)
+
 ## Development
 
 ### Prerequisites

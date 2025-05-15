@@ -1,0 +1,43 @@
+{
+  "summary": "addConferenceBridge Default Example",
+  "description": "Default example generated from AXL Method Explorer for addConferenceBridge",
+  "value": {
+    "conferenceBridge": {
+      "name": "",
+      "description": "",
+      "product": "",
+      "devicePoolName": "",
+      "commonDeviceConfigName": "",
+      "locationName": "",
+      "subUnit": "",
+      "loadInformation": "",
+      "vendorConfig": "",
+      "maximumCapacity": "",
+      "useTrustedRelayPoint": "",
+      "securityProfileName": "",
+      "destinationAddress": "",
+      "mcuConferenceBridgeSipPort": "",
+      "sipProfile": "",
+      "srtpAllowed": "",
+      "normalizationScript": "",
+      "enableTrace": "",
+      "normalizationScriptInfos": {
+        "normalizationScriptInfo": {
+          "parameterName": "",
+          "parameterValue": ""
+        }
+      },
+      "userName": "",
+      "password": "",
+      "httpPort": "",
+      "useHttps": "",
+      "addresses": {
+        "address": ""
+      },
+      "conferenceBridgePrefix": "",
+      "allowCFBControlOfCallSecurityIcon": "",
+      "overrideSIPTrunkAddress": "",
+      "sipTrunkName": ""
+    }
+  }
+}

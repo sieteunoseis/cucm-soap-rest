@@ -1,0 +1,12 @@
+{
+  "summary": "addCallPark Default Example",
+  "description": "Default example generated from AXL Method Explorer for addCallPark",
+  "value": {
+    "callPark": {
+      "pattern": "",
+      "description": "",
+      "routePartitionName": "",
+      "callManagerName": ""
+    }
+  }
+}

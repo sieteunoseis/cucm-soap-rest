@@ -1,0 +1,14 @@
+{
+  "summary": "addAdvertisedPatterns Default Example",
+  "description": "Default example generated from AXL Method Explorer for addAdvertisedPatterns",
+  "value": {
+    "advertisedPatterns": {
+      "description": "",
+      "pattern": "",
+      "patternType": "",
+      "hostedRoutePSTNRule": "",
+      "pstnFailStrip": "",
+      "pstnFailPrepend": ""
+    }
+  }
+}

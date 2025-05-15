@@ -1,0 +1,28 @@
+{
+  "summary": "addCommonDeviceConfig Default Example",
+  "description": "Default example generated from AXL Method Explorer for addCommonDeviceConfig",
+  "value": {
+    "commonDeviceConfig": {
+      "name": "",
+      "softkeyTemplateName": "",
+      "userLocale": "",
+      "networkHoldMohAudioSourceId": "",
+      "userHoldMohAudioSourceId": "",
+      "mlppDomainId": "",
+      "mlppIndicationStatus": "",
+      "useTrustedRelayPoint": "",
+      "preemption": "",
+      "ipAddressingMode": "",
+      "ipAddressingModePreferenceControl": "",
+      "allowAutoConfigurationForPhones": "",
+      "useImeForOutboundCalls": "",
+      "confidentialAccess": {
+        "confidentialAccessMode": "",
+        "confidentialAccessLevel": ""
+      },
+      "allowDuplicateAddressDetection": "",
+      "acceptRedirectMessages": "",
+      "replyMulticastEchoRequest": ""
+    }
+  }
+}

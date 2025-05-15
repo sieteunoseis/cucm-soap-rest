@@ -1,0 +1,28 @@
+{
+  "summary": "addDhcpSubnet Default Example",
+  "description": "Default example generated from AXL Method Explorer for addDhcpSubnet",
+  "value": {
+    "dhcpSubnet": {
+      "dhcpServerName": "",
+      "subnetIpAddress": "",
+      "primaryStartIpAddress": "",
+      "primaryEndIpAddress": "",
+      "secondaryStartIpAddress": "",
+      "secondaryEndIpAddress": "",
+      "primaryRouterIpAddress": "",
+      "secondaryRouterIpAddress": "",
+      "subnetMask": "",
+      "domainName": "",
+      "primaryDnsIpAddress": "",
+      "secondaryDnsIpAddress": "",
+      "tftpServerName": "",
+      "primaryTftpServerIpAddress": "",
+      "secondaryTftpServerIpAddress": "",
+      "bootstrapServerIpAddress": "",
+      "arpCacheTimeout": "",
+      "ipAddressLeaseTime": "",
+      "renewalTime": "",
+      "rebindingTime": ""
+    }
+  }
+}

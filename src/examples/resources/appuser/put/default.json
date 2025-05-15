@@ -1,0 +1,40 @@
+{
+  "summary": "addAppUser Default Example",
+  "description": "Default example generated from AXL Method Explorer for addAppUser",
+  "value": {
+    "appUser": {
+      "userid": "",
+      "password": "",
+      "passwordCredentials": {
+        "pwdCredPolicyName": "",
+        "pwdCredUserCantChange": "",
+        "pwdCredUserMustChange": "",
+        "pwdCredDoesNotExpire": "",
+        "pwdCredTimeChanged": "",
+        "pwdCredTimeAdminLockout": "",
+        "pwdCredLockedByAdministrator": "",
+        "pwdResetHackCount": ""
+      },
+      "digestCredentials": "",
+      "presenceGroupName": "",
+      "acceptPresenceSubscription": "",
+      "acceptOutOfDialogRefer": "",
+      "acceptUnsolicitedNotification": "",
+      "allowReplaceHeader": "",
+      "associatedDevices": {
+        "device": ""
+      },
+      "associatedGroups": {
+        "userGroup": {
+          "name": "",
+          "userRoles": {
+            "userRole": ""
+          }
+        }
+      },
+      "ctiControlledDeviceProfiles": {
+        "deviceProfile": ""
+      }
+    }
+  }
+}

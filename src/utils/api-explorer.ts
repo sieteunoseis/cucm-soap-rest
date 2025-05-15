@@ -1,7 +1,7 @@
 import { Express, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
-import { getExampleForResource } from './resource-examples';
+import { getExampleForResource } from './file-examples';
 import { getResourceTagFromMethod } from './method-mapper';
 import { packageInfo } from './version';
 import { isAuthenticated } from '../middleware/auth.middleware';
@@ -83,7 +83,7 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
     explorer: true,
     swaggerOptions: {
       displayRequestDuration: true,
-      docExpansion: 'list', // 'list', 'full', or 'none'
+      docExpansion: 'none', // 'list', 'full', or 'none' - controls initial expansion state
       filter: true,
       showExtensions: true,
       validatorUrl: null, // Disable validation
@@ -91,10 +91,69 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
       tagsSorter: 'alpha', // Sort tags alphabetically
       // Use a string value to avoid TypeScript issues
       operationsSorter: 'method',
+      deepLinking: true,
       // This will be overridden with a custom function in the UI itself that orders them:
       // GET -> PUT -> PATCH -> DELETE -> POST
     },
-    customCss: '.topbar-wrapper img { content: url("/logo.png"); }',
+    customCss: `
+      .topbar-wrapper img { content: url("/logo.png"); }
+      /* Improve visibility of expanded operations */
+      .swagger-ui .opblock.is-open {
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        border-radius: 4px;
+        margin-bottom: 15px;
+      }
+      /* Highlight the operation when expanded */
+      .swagger-ui .opblock.is-open .opblock-summary {
+        border-bottom: 1px solid rgba(59,65,81,0.3);
+      }
+      /* Back to Top Button */
+      #back-to-top {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background-color: #4990e2;
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 40px;
+        font-size: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        cursor: pointer;
+        z-index: 1000;
+        opacity: 0;
+        transition: all 0.3s ease-in-out;
+      }
+      #back-to-top:hover {
+        background-color: #3a7fd5;
+        transform: translateY(-3px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      }
+      #back-to-top.visible {
+        opacity: 1;
+      }
+      #back-to-top::after {
+        content: 'Back to top';
+        position: absolute;
+        top: -35px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(0,0,0,0.7);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        white-space: nowrap;
+        opacity: 0;
+        transition: opacity 0.2s ease-in-out;
+        pointer-events: none;
+      }
+      #back-to-top:hover::after {
+        opacity: 1;
+      }
+    `,
     customSiteTitle: "Cisco AXL REST API",
     customfavIcon: "/favicon.ico",
     customJs: [] as string[],
@@ -194,6 +253,51 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
         if (infoContainer) {
           infoContainer.appendChild(configPanel);
         }
+        
+        // Create back to top button
+        const backToTopButton = document.createElement('div');
+        backToTopButton.id = 'back-to-top';
+        backToTopButton.innerHTML = '&#8593;'; // Up arrow
+        backToTopButton.title = 'Back to top';
+        document.body.appendChild(backToTopButton);
+        
+        // Handle back to top button click
+        backToTopButton.addEventListener('click', function() {
+          window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+          });
+        });
+        
+        // Show/hide back to top button based on scroll position
+        window.addEventListener('scroll', function() {
+          if (window.pageYOffset > 300) {
+            backToTopButton.classList.add('visible');
+          } else {
+            backToTopButton.classList.remove('visible');
+          }
+        });
+        
+        // Add custom behavior to prevent methods from collapsing when clicked
+        // Wait for Swagger UI to fully load and render
+        setTimeout(() => {
+          // Add event listeners to operations to prevent collapsing
+          document.addEventListener('click', function(e) {
+            // Find if the click is on an operation heading
+            const opblockSummary = e.target.closest('.opblock-summary');
+            if (opblockSummary) {
+              // Find the parent operation block
+              const opblock = opblockSummary.closest('.opblock');
+              if (opblock) {
+                // Keep operation expanded by removing the 'is-open' class and readding it
+                if (opblock.classList.contains('is-open')) {
+                  // Prevent the default Swagger UI behavior that would collapse it
+                  e.stopPropagation();
+                }
+              }
+            }
+          }, true); // Use capturing phase to intercept before Swagger UI handlers
+        }, 1000); // Give Swagger UI time to initialize
       });
     })();
   `);
@@ -500,6 +604,98 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
           background-color: #3a7fd5;
         }
 
+        .refresh-button {
+          background-color: #28a745;
+          color: white;
+          border: none;
+          padding: 8px 14px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 14px;
+          font-family: var(--swagger-ui-font);
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+        }
+
+        .refresh-button:hover {
+          background-color: #218838;
+        }
+
+        .refresh-button.loading {
+          background-color: #6c757d;
+          cursor: wait;
+        }
+        
+        .goto-swagger-button {
+          background-color: #17a2b8;
+          color: white;
+          border: none;
+          padding: 8px 14px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 14px;
+          font-family: var(--swagger-ui-font);
+          font-weight: 500;
+          width: 100%;
+          text-align: center;
+        }
+        
+        .goto-swagger-button:hover {
+          background-color: #138496;
+        }
+        
+        /* Back to Top Button */
+        #back-to-top {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          background-color: #4990e2;
+          color: white;
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          text-align: center;
+          line-height: 40px;
+          font-size: 20px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+          cursor: pointer;
+          z-index: 1000;
+          opacity: 0;
+          transition: all 0.3s ease-in-out;
+        }
+        
+        #back-to-top:hover {
+          background-color: #3a7fd5;
+          transform: translateY(-3px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        }
+        
+        #back-to-top.visible {
+          opacity: 1;
+        }
+        
+        #back-to-top::after {
+          content: 'Back to top';
+          position: absolute;
+          top: -35px;
+          left: 50%;
+          transform: translateX(-50%);
+          background-color: rgba(0,0,0,0.7);
+          color: white;
+          padding: 5px 10px;
+          border-radius: 4px;
+          font-size: 12px;
+          white-space: nowrap;
+          opacity: 0;
+          transition: opacity 0.2s ease-in-out;
+          pointer-events: none;
+        }
+        
+        #back-to-top:hover::after {
+          opacity: 1;
+        }
+
         /* Additional Select2 dropdown styling */
         .select2-dropdown {
           border-color: #d9d9d9;
@@ -518,6 +714,9 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
           <div style="display: flex; align-items: center;">
             <img src="/logo.png" alt="Cisco Logo" style="height: 40px; margin-right: 15px;" />
             <h3 class="explorer-title">AXL Method Explorer</h3>
+          </div>
+          <div>
+            <button id="refresh-examples-btn" class="refresh-button">Refresh Examples</button>
           </div>
         </div>
 
@@ -550,10 +749,15 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
 
         <p>This explorer helps you discover available AXL methods and their required parameters. Select a method to see details.</p>
 
-        <div class="select2-container">
-          <select id="method-select" style="width: 100%;">
-            <option value="">-- Select a method --</option>
-          </select>
+        <div style="margin-bottom: 15px;">
+          <div class="select2-container" style="width: 100%; margin-bottom: 10px;">
+            <select id="method-select" style="width: 100%;">
+              <option value="">-- Select a method --</option>
+            </select>
+          </div>
+          <div id="goto-swagger-container" style="display: none; margin-top: 10px;">
+            <button id="goto-swagger-btn" class="goto-swagger-button">View Method in Swagger UI</button>
+          </div>
         </div>
 
         <div id="method-details">
@@ -579,6 +783,30 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
           const methodDetails = document.getElementById('method-details');
           const endpointUrl = document.getElementById('endpoint-url');
           const copyButton = document.getElementById('copy-button');
+          
+          // Create back to top button
+          const backToTopButton = document.createElement('div');
+          backToTopButton.id = 'back-to-top';
+          backToTopButton.innerHTML = '&#8593;'; // Up arrow
+          backToTopButton.title = 'Back to top';
+          document.body.appendChild(backToTopButton);
+          
+          // Handle back to top button click
+          backToTopButton.addEventListener('click', function() {
+            window.scrollTo({
+              top: 0,
+              behavior: 'smooth'
+            });
+          });
+          
+          // Show/hide back to top button based on scroll position
+          window.addEventListener('scroll', function() {
+            if (window.pageYOffset > 300) {
+              backToTopButton.classList.add('visible');
+            } else {
+              backToTopButton.classList.remove('visible');
+            }
+          });
           
           if (!dropdown) {
             return;
@@ -663,12 +891,24 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
             // Directly show the method details when a selection is made
             if (methodDetails && e.params.data && e.params.data.id) {
               methodDetails.style.display = 'block';
+              
+              // Show the goto swagger button
+              const gotoSwaggerContainer = document.getElementById('goto-swagger-container');
+              if (gotoSwaggerContainer) {
+                gotoSwaggerContainer.style.display = 'block';
+              }
             }
           }).on('change', function() {
             const selectedMethod = dropdown.value;
             
             if (methodDetails) {
               methodDetails.style.display = selectedMethod ? 'block' : 'none';
+            }
+            
+            // Show/hide the goto swagger button
+            const gotoSwaggerContainer = document.getElementById('goto-swagger-container');
+            if (gotoSwaggerContainer) {
+              gotoSwaggerContainer.style.display = selectedMethod ? 'block' : 'none';
             }
 
             if (selectedMethod) {
@@ -805,6 +1045,131 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
           });
         });
 
+        // Handle goto swagger button
+        window.addEventListener('load', function() {
+          const gotoSwaggerBtn = document.getElementById('goto-swagger-btn');
+          
+          if (gotoSwaggerBtn) {
+            gotoSwaggerBtn.addEventListener('click', function() {
+              const selectedMethod = document.getElementById('method-select').value;
+              if (!selectedMethod) return;
+              
+              // Determine which type of operation this is to find the right tag
+              const methodLower = selectedMethod.toLowerCase();
+              let tagToFind = '';
+              
+              // Common prefix mapping to operation type
+              if (methodLower.startsWith('get') || methodLower.startsWith('list')) {
+                // Extract resource name - remove the get/list prefix
+                const prefix = methodLower.startsWith('get') ? 'get' : 'list';
+                tagToFind = selectedMethod.substring(prefix.length).toLowerCase();
+                // For list methods, check if we need to make it plural
+                if (prefix === 'list' && !tagToFind.endsWith('s')) {
+                  tagToFind += 's';
+                }
+              } else if (methodLower.startsWith('add')) {
+                tagToFind = selectedMethod.substring(3).toLowerCase();
+              } else if (methodLower.startsWith('update')) {
+                tagToFind = selectedMethod.substring(6).toLowerCase();
+              } else if (methodLower.startsWith('remove')) {
+                tagToFind = selectedMethod.substring(6).toLowerCase();
+              } else if (methodLower.startsWith('delete')) {
+                tagToFind = selectedMethod.substring(6).toLowerCase();
+              } else if (methodLower.startsWith('apply')) {
+                tagToFind = 'apply';
+              } else if (methodLower.startsWith('reset')) {
+                tagToFind = 'reset';
+              } else if (methodLower.startsWith('do')) {
+                tagToFind = 'do';
+              } else {
+                // Default to the operation name
+                tagToFind = methodLower;
+              }
+              
+              // Look for tag elements in Swagger UI
+              const tagElements = document.querySelectorAll('.swagger-ui .opblock-tag');
+              let found = false;
+              
+              // Try to find and expand the tag section
+              for (const tagEl of tagElements) {
+                const tagText = tagEl.textContent.toLowerCase();
+                if (tagText.includes(tagToFind)) {
+                  // Found a match - scroll to it and click to expand if collapsed
+                  tagEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  
+                  // If tag is collapsed, expand it
+                  if (!tagEl.classList.contains('is-open')) {
+                    tagEl.click();
+                  }
+                  
+                  found = true;
+                  break;
+                }
+              }
+              
+              // If no tag found, scroll to the Swagger UI section anyway
+              if (!found) {
+                const swaggerUI = document.getElementById('swagger-ui');
+                if (swaggerUI) {
+                  swaggerUI.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }
+            });
+          }
+        });
+        
+        // Handle refresh examples button
+        window.addEventListener('load', function() {
+          const refreshButton = document.getElementById('refresh-examples-btn');
+          
+          if (refreshButton) {
+            refreshButton.addEventListener('click', function() {
+              // Show loading state
+              const originalText = refreshButton.textContent;
+              refreshButton.textContent = 'Refreshing...';
+              refreshButton.classList.add('loading');
+              refreshButton.disabled = true;
+              
+              // Call the refresh examples endpoint
+              fetch('/api/debug/refresh-examples')
+                .then(response => {
+                  if (!response.ok) {
+                    throw new Error('Failed to refresh examples');
+                  }
+                  return response.json();
+                })
+                .then(data => {
+                  // Show success message
+                  refreshButton.textContent = 'Success!';
+                  refreshButton.classList.remove('loading');
+                  refreshButton.style.backgroundColor = '#28a745';
+                  
+                  // Reset button after delay
+                  setTimeout(() => {
+                    refreshButton.textContent = originalText;
+                    refreshButton.disabled = false;
+                  }, 2000);
+
+                  console.log('Examples refreshed successfully:', data);
+                })
+                .catch(error => {
+                  // Show error message
+                  refreshButton.textContent = 'Failed!';
+                  refreshButton.classList.remove('loading');
+                  refreshButton.style.backgroundColor = '#dc3545';
+                  
+                  // Reset button after delay
+                  setTimeout(() => {
+                    refreshButton.textContent = originalText;
+                    refreshButton.disabled = false;
+                  }, 2000);
+
+                  console.error('Error refreshing examples:', error);
+                });
+            });
+          }
+        });
+
         // Static width approach - no dynamic width adjustment
         window.onload = function() {
           const ui = SwaggerUIBundle({
@@ -819,9 +1184,25 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
               SwaggerUIBundle.plugins.DownloadUrl
             ],
             layout: "BaseLayout",
-            docExpansion: 'list',
+            docExpansion: 'none', // Initial state: collapsed
             validatorUrl: null,
             tagsSorter: 'alpha', // Sort tags alphabetically
+            onComplete: function() {
+              // Add custom behavior when Swagger UI is loaded
+              setTimeout(() => {
+                // Prevent operations from collapsing when clicked
+                document.addEventListener('click', function(e) {
+                  const opblockSummary = e.target.closest('.opblock-summary');
+                  if (opblockSummary) {
+                    const opblock = opblockSummary.closest('.opblock');
+                    if (opblock && opblock.classList.contains('is-open')) {
+                      // Prevent the operation from collapsing
+                      e.stopPropagation();
+                    }
+                  }
+                }, true);
+              }, 1000);
+            }
           });
         };
 

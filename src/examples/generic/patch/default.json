@@ -1,0 +1,9 @@
+{
+  "summary": "Update Resource - Direct parameters [Generic]",
+  "description": "For update operations, provide parameters directly without a resource wrapper",
+  "value": {
+    "name": "Example-Name",
+    "description": "Example updated using the REST API",
+    "uuid": "12345678-1234-1234-1234-123456789012"
+  }
+}

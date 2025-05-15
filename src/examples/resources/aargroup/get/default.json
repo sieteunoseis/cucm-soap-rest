@@ -1,0 +1,18 @@
+{
+  "summary": "getAarGroup Default Example",
+  "description": "Default example generated from AXL Method Explorer for getAarGroup",
+  "value": {
+    "name": "",
+    "uuid": "",
+    "returnedTags": {
+      "name": "",
+      "relatedGroups": {
+        "relatedGroup": {
+          "aarGroupFromName": "",
+          "aarGroupToName": "",
+          "prefixDigit": ""
+        }
+      }
+    }
+  }
+}

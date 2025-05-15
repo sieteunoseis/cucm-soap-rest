@@ -14,7 +14,12 @@ services:
       - USE_API_KEY=true
       - API_KEY_NAME=x-api-key
       - API_KEY_LOCATION=header
+      - AUTO_SAVE_EXAMPLES=${AUTO_SAVE_EXAMPLES:-false}
+      - AUTO_SAVE_EXPLORER=${AUTO_SAVE_EXPLORER:-false}
     restart: always
+    volumes:
+      # Mount examples directory to allow customization without rebuilding the image
+      - ../examples:/usr/src/app/src/examples
     networks:
       - kong-net
   kong:

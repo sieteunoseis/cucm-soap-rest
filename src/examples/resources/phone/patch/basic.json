@@ -1,0 +1,10 @@
+{
+  "summary": "Update Phone - Direct parameters",
+  "description": "For update operations, provide parameters directly without a resource wrapper",
+  "value": {
+    "name": "SEP001122334455",
+    "description": "Updated phone via PATCH request",
+    "devicePoolName": "Default",
+    "uuid": "12345678-1234-1234-1234-123456789012"
+  }
+}
