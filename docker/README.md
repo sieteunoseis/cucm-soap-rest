@@ -82,6 +82,13 @@ EOF
 
 New examples are picked up immediately without requiring a container restart, as they're read from disk each time they're requested.
 
+If you want to use the examples provided in the repository, you can run the following command to copy them into the `examples` directory:
+
+```bash
+wget -q -O - https://api.github.com/repos/sieteunoseis/cucm-soap-rest/tarball/master | tar -xz --wildcards --strip=2 "*/src/examples"
+```
+This will download the latest examples from the repository and place them in the `examples` directory.
+
 ### Auto-Saving Examples
 
 You can enable automatic saving of API requests and Method Explorer parameters as examples by setting the following environment variables:
