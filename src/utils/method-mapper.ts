@@ -36,7 +36,7 @@ export function mapAxlMethodToHttp(axlMethod: string): MethodMapping {
       route = route.replace(/[^\w-]/g, '');
     }
   } else if (methodLower.startsWith('add')) {
-    httpMethod = 'put';
+    httpMethod = 'post';
     route = methodLower.replace('add', '').toLowerCase();
     // Ensure route has no invalid characters
     route = route.replace(/[^\w-]/g, '');

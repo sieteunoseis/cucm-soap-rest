@@ -1079,7 +1079,7 @@ export async function createDynamicRoutes(app: Express) {
         }
 
         // Also register a GET endpoint for viewing resources (for add* operations)
-        if (httpMethod === "put") {
+        if (httpMethod === "post" && operation.toLowerCase().startsWith("add")) {
           debugLog(`Also registering GET route for: ${routePath}`, null, 'routes');
           app.get(routePath, (req: Request, res: Response, next: NextFunction) => {
             // For GET on an addX endpoint, transform to a listX operation

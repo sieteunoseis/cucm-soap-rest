@@ -61,10 +61,10 @@ The Docker Compose configuration maps the `./examples` directory to allow custom
 
 ```bash
 # Create examples directory structure
-mkdir -p examples/resources/line/put
+mkdir -p examples/resources/line/post
 
 # Create a custom example for lines
-cat > examples/resources/line/put/custom-example.json << 'EOF'
+cat > examples/resources/line/post/custom-example.json << 'EOF'
 {
   "summary": "Add Custom Line Example",
   "description": "Example showing custom line configuration",
@@ -94,7 +94,7 @@ AUTO_SAVE_EXPLORER=true   # Save Method Explorer parameters as default examples
 
 #### API Request Auto-Saving
 
-When `AUTO_SAVE_EXAMPLES` is enabled, every successful API request will be saved as an example in the appropriate directory. For instance, if you use the API to add a line with `addLine`, the request will be automatically saved as an example in `examples/resources/line/put/addline.json`.
+When `AUTO_SAVE_EXAMPLES` is enabled, every successful API request will be saved as an example in the appropriate directory. For instance, if you use the API to add a line with `addLine`, the request will be automatically saved as an example in `examples/resources/line/post/addline.json`.
 
 The API response will include metadata about the saved example:
 
@@ -103,14 +103,14 @@ The API response will include metadata about the saved example:
   "result": "uuid-1234-5678-abcd",
   "_meta": {
     "exampleSaved": true,
-    "exampleMessage": "Saved example to .../examples/resources/line/put/addline.json"
+    "exampleMessage": "Saved example to .../examples/resources/line/post/addline.json"
   }
 }
 ```
 
 #### Method Explorer Auto-Saving
 
-When `AUTO_SAVE_EXPLORER` is enabled, parameters fetched in the AXL Method Explorer will be automatically saved as `default.json` examples in the appropriate directory. For example, viewing the parameters for `addAppServerInfo` will save a `default.json` file in `examples/resources/appserverinfo/put/`.
+When `AUTO_SAVE_EXPLORER` is enabled, parameters fetched in the AXL Method Explorer will be automatically saved as `default.json` examples in the appropriate directory. For example, viewing the parameters for `addAppServerInfo` will save a `default.json` file in `examples/resources/appserverinfo/post/`.
 
 The Method Explorer response will include metadata about the saved example:
 
@@ -120,7 +120,7 @@ The Method Explorer response will include metadata about the saved example:
   "parameters": { ... },
   "_meta": {
     "exampleSaved": true,
-    "exampleMessage": "Saved explorer example to .../examples/resources/appserverinfo/put/default.json"
+    "exampleMessage": "Saved explorer example to .../examples/resources/appserverinfo/post/default.json"
   }
 }
 ```

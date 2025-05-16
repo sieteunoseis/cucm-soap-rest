@@ -36,14 +36,14 @@ Examples are stored in JSON files under the `src/examples` directory, organized 
 ```
 src/examples/
 ├── generic/           # Generic examples for any resource
-│   ├── put/
+│   ├── post/
 │   │   └── default.json
 │   ├── patch/
 │   │   └── default.json
 │   └── ...
 └── resources/         # Resource-specific examples
     ├── line/          # Line resource examples
-    │   ├── put/       # Examples for PUT (add) operations
+    │   ├── post/       # Examples for POST (add) operations
     │   │   ├── basic.json
     │   │   └── with-template.json
     │   ├── patch/     # Examples for PATCH (update) operations
@@ -51,7 +51,7 @@ src/examples/
     │   │   └── with-template.json
     │   └── ...
     ├── phone/         # Phone resource examples
-    │   ├── put/
+    │   ├── post/
     │   ├── patch/
     │   └── ...
     └── ...
@@ -77,14 +77,14 @@ To add a new example:
 }
 ```
 
-For PUT operations, remember to include the resource wrapper (e.g., `"line": {...}`).
+For POST operations, remember to include the resource wrapper (e.g., `"line": {...}`).
 
 ## Example Discovery Process
 
 When generating API documentation, the system looks for examples in this order:
 
-1. Resource-specific examples (e.g., `/resources/line/put/*.json`)
-2. Generic examples (e.g., `/generic/put/*.json`)
+1. Resource-specific examples (e.g., `/resources/line/post/*.json`)
+2. Generic examples (e.g., `/generic/post/*.json`)
 3. Hardcoded fallback examples
 
 This allows you to override the default examples with your own custom ones.

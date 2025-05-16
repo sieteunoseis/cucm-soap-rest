@@ -8,13 +8,13 @@ import { getResourceFromMethod as getResourceFromMethod_mapper } from './method-
 /**
  * Determines the HTTP method based on the AXL method prefix
  * @param axlMethod The AXL method name (e.g., addLine, updatePhone)
- * @returns The corresponding HTTP method (put, patch, etc.)
+ * @returns The corresponding HTTP method (post, patch, etc.)
  */
 export function getHttpMethodFromAxlMethod(axlMethod: string): string | null {
   const methodLower = axlMethod.toLowerCase();
   
   if (methodLower.startsWith('add')) {
-    return 'put';
+    return 'post';
   } else if (methodLower.startsWith('update')) {
     return 'patch';
   } else if (methodLower.startsWith('remove') || methodLower.startsWith('delete')) {
@@ -71,7 +71,7 @@ export function writeExampleFile(filePath: string, data: any): { status: string;
 /**
  * Creates the full directory path for saving an example
  * @param method The AXL method name
- * @param httpMethod The HTTP method (put, patch, etc.)
+ * @param httpMethod The HTTP method (post, patch, etc.)
  * @returns The directory path or null if unable to determine
  */
 export function getExampleDirectoryPath(method: string, httpMethod: string): string | null {

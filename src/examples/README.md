@@ -7,12 +7,12 @@ This directory contains JSON examples for the Swagger API documentation. Example
 ```
 src/examples/
 ├── generic/           # Generic fallback examples for any resource
-│   ├── put/           # PUT (add) operations
+│   ├── post/          # POST (add) operations
 │   ├── patch/         # PATCH (update) operations
 │   └── ...
 └── resources/         # Resource-specific examples
     ├── line/          # Line resource examples
-    │   ├── put/       # PUT (add) operations
+    │   ├── post/      # POST (add) operations
     │   ├── patch/     # PATCH (update) operations
     │   └── ...
     ├── phone/         # Phone resource examples
@@ -25,7 +25,7 @@ src/examples/
 
 1. Create the appropriate folders if they don't exist:
    ```
-   mkdir -p src/examples/resources/my-resource/put
+   mkdir -p src/examples/resources/my-resource/post
    mkdir -p src/examples/resources/my-resource/patch
    ```
 
@@ -44,14 +44,14 @@ src/examples/
    ```
 
 3. Important notes:
-   - For PUT operations (adding resources), include the resource wrapper
+   - For POST operations (adding resources), include the resource wrapper
    - For PATCH operations (updating resources), omit the resource wrapper
    - File names can be anything with a `.json` extension (e.g., `basic.json`, `with-template.json`, etc.)
    - Multiple examples for the same resource/method are displayed in alphabetical order by filename
 
-### Example: Adding a Phone Example for PUT
+### Example: Adding a Phone Example for POST
 
-Create a file at `src/examples/resources/phone/put/special-config.json`:
+Create a file at `src/examples/resources/phone/post/special-config.json`:
 
 ```json
 {
@@ -105,7 +105,7 @@ Generic examples are used when resource-specific examples aren't available:
 
 1. Create a file in the appropriate generic folder:
    ```
-   src/examples/generic/put/my-example.json
+   src/examples/generic/post/my-example.json
    ```
 
 2. Use this format:
@@ -127,8 +127,8 @@ Generic examples are used when resource-specific examples aren't available:
 ## Example Discovery
 
 The system looks for examples in this order:
-1. Resource-specific examples (`resources/line/put/*.json`)
-2. Generic examples (`generic/put/*.json`)
+1. Resource-specific examples (`resources/line/post/*.json`)
+2. Generic examples (`generic/post/*.json`)
 3. Hardcoded default examples
 
 This means you can override the default examples by adding your own in the appropriate directory.
@@ -139,12 +139,12 @@ When running the API in Docker, the examples directory is mounted as a volume, a
 
 1. Create the examples directory structure in your Docker directory:
    ```
-   mkdir -p docker/examples/resources/line/put
+   mkdir -p docker/examples/resources/line/post
    ```
 
 2. Add your custom example files in these directories:
    ```
-   vim docker/examples/resources/line/put/my-custom-example.json
+   vim docker/examples/resources/line/post/my-custom-example.json
    ```
 
 3. The Docker Compose files automatically mount the `examples` directory to the container, making your custom examples available immediately.
@@ -180,12 +180,12 @@ The API can automatically save both API requests and Method Explorer parameters 
 2. When enabled, parameters viewed in the AXL Method Explorer will be saved:
    - Saved as `default.json` in the appropriate directory
    - Includes the complete structure returned by the AXL API
-   - Automatically formatted for the correct HTTP method (e.g., wrapped in resource tag for PUT)
+   - Automatically formatted for the correct HTTP method (e.g., wrapped in resource tag for post)
    - Useful for capturing default structures without making actual API calls
 
 3. For instance, when viewing parameters for `addAppServerInfo`, a file will be created at:
    ```
-   examples/resources/appserverinfo/put/default.json
+   examples/resources/appserverinfo/post/default.json
    ```
 
 These auto-saving features help you build a comprehensive library of examples as you use the API and explore the AXL methods.

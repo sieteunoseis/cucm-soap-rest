@@ -8,7 +8,7 @@ import { getResourceTagFromMethod } from './method-mapper';
 /**
  * Gets examples from filesystem for a specific resource and method
  * @param resource The resource name (line, phone, etc.)
- * @param httpMethod The HTTP method (put, patch, delete, etc.)
+ * @param httpMethod The HTTP method (post, patch, delete, etc.)
  * @returns Object containing examples or null if not found
  */
 function getFileBasedExamples(resource: string, httpMethod: string): any | null {
@@ -61,7 +61,7 @@ function getFileBasedExamples(resource: string, httpMethod: string): any | null 
 
 /**
  * Gets generic examples from filesystem for an HTTP method
- * @param httpMethod The HTTP method (put, patch, delete, etc.)
+ * @param httpMethod The HTTP method (post, patch, delete, etc.)
  * @param resourceTag The camelCase resource tag to use in the example
  * @returns Object containing examples or null if not found
  */
@@ -118,10 +118,10 @@ function getGenericFileExamples(httpMethod: string, resourceTag: string): any | 
  * Returns examples for specific resource types based on file-system examples
  * This is a drop-in replacement for the previous getExampleForResource function
  * @param resourceUrlPath Path component that identifies the resource
- * @param httpMethod HTTP method (put, patch, etc.)
+ * @param httpMethod HTTP method (post, patch, etc.)
  * @returns Object of examples to display in Swagger UI
  */
-export function getExampleForResource(resourceUrlPath: string, httpMethod: string = "put"): any {
+export function getExampleForResource(resourceUrlPath: string, httpMethod: string = "post"): any {
   // To avoid maintaining a mapping dictionary, we'll use a more flexible approach
   // We'll convert everything to lowercase for file paths and directory structure
   const resourceLower = resourceUrlPath.toLowerCase();
@@ -161,8 +161,7 @@ export function getExampleForResource(resourceUrlPath: string, httpMethod: strin
   }
   
   // Default generic example - varies by HTTP method
-  if (httpMethod === "put") {
-    // PUT examples (add operation)
+  if (httpMethod === "post") {
     return {
       example1: {
         summary: "Add Resource - With resource wrapper [Generic]",

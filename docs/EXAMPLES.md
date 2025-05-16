@@ -11,14 +11,14 @@ Examples are stored in a hierarchical structure under `src/examples/`:
 ```
 src/examples/
 ├── generic/           # Generic fallback examples for any resource
-│   ├── put/           # PUT method generic examples
+│   ├── post/           # POST method generic examples
 │   │   └── default.json
 │   ├── patch/         # PATCH method generic examples
 │   │   └── default.json
 │   └── ...
 └── resources/         # Resource-specific examples
     ├── line/          # Line resource examples
-    │   ├── put/       # Examples for PUT (add) operations
+    │   ├── post/       # Examples for POST (add) operations
     │   │   ├── basic.json
     │   │   └── with-template.json
     │   ├── patch/     # Examples for PATCH (update) operations
@@ -26,7 +26,7 @@ src/examples/
     │   │   └── with-template.json
     │   └── ...
     ├── phone/         # Phone resource examples
-    │   ├── put/
+    │   ├── post/
     │   ├── patch/
     │   └── ...
     └── ...
@@ -36,7 +36,7 @@ src/examples/
 
 To add an example for a specific resource and method:
 
-1. Create a JSON file in the appropriate directory, e.g., `src/examples/resources/phone/put/my-example.json`
+1. Create a JSON file in the appropriate directory, e.g., `src/examples/resources/phone/post/my-example.json`
 2. Use the following format:
 
 ```json
@@ -59,8 +59,8 @@ To add an example for a specific resource and method:
 
 When the API needs to display examples for a resource, it looks in this order:
 
-1. Resource-specific examples (`resources/line/put/*.json`)
-2. Generic examples (`generic/put/*.json`)
+1. Resource-specific examples (`resources/line/post/*.json`)
+2. Generic examples (`generic/post/*.json`)
 3. Hardcoded default examples
 
 This allows for flexibility and customization without modifying code.

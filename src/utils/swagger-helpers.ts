@@ -4,7 +4,7 @@ import path from "path";
 
 /**
  * Generates a path description for a Swagger endpoint based on HTTP method and operation
- * @param httpMethod The HTTP method (get, put, patch, etc.)
+ * @param httpMethod The HTTP method (get, post, patch, etc.)
  * @param operation The AXL operation name
  * @param path The API path
  * @param description Base description text
@@ -30,8 +30,8 @@ export function generatePathDescription(
     : `${description} (${operation})`;
 
   // Add documentation notes based on HTTP method
-  if (httpMethod.toLowerCase() === 'put') {
-    pathDescription += `\n\n**IMPORTANT - Case-Sensitive Resource Names:** For add operations (PUT), you must use the exact camelCase resource wrapper.
+  if (httpMethod.toLowerCase() === 'post') {
+    pathDescription += `\n\n**IMPORTANT - Case-Sensitive Resource Names:** For add operations (POST), you must use the exact camelCase resource wrapper.
     For this endpoint, use \`${resourceTag}\` as the resource key (not \`${resource}\`).
     For example: \`{ "${resourceTag}": { "name": "Example" } }\`
     See the examples below for proper request structure.
@@ -108,7 +108,7 @@ export function generatePathDescription(
 /**
  * Gets examples from filesystem for a specific resource and method
  * @param resource The resource name (line, phone, etc.)
- * @param httpMethod The HTTP method (put, patch, delete, etc.)
+ * @param httpMethod The HTTP method (post, patch, delete, etc.)
  * @returns Object containing examples or null if not found
  */
 function getFileBasedExamples(resource: string, httpMethod: string): any | null {
@@ -151,7 +151,7 @@ function getFileBasedExamples(resource: string, httpMethod: string): any | null 
 
 /**
  * Gets generic examples from filesystem for an HTTP method
- * @param httpMethod The HTTP method (put, patch, delete, etc.)
+ * @param httpMethod The HTTP method (post, patch, delete, etc.)
  * @returns Object containing examples or null if not found
  */
 function getGenericFileExamples(httpMethod: string): any | null {
@@ -198,7 +198,7 @@ function getGenericFileExamples(httpMethod: string): any | null {
 
 /**
  * Generates examples for request bodies based on HTTP method and resource
- * @param httpMethod The HTTP method (put, patch, delete, etc.)
+ * @param httpMethod The HTTP method (post, patch, delete, etc.)
  * @param resourceTag The camelCase resource tag
  * @param method Optional AXL method name (for special handling)
  * @returns Example objects for Swagger UI
@@ -276,7 +276,7 @@ export function generateExamples(
     }
     
     return examples;
-  } else if (httpMethod.toLowerCase() === "put") {
+  } else if (httpMethod.toLowerCase() === "post") {
     // Look for resource-specific examples first
     const fileExamples = resource ? getFileBasedExamples(resource, httpMethod) : null;
     if (fileExamples) {
@@ -397,7 +397,7 @@ export function generateExamples(
 
 /**
  * Generates the summary for a Swagger endpoint
- * @param httpMethod HTTP method (GET, PUT, etc.)
+ * @param httpMethod HTTP method (GET, POST, etc.)
  * @param path API path
  * @param operation AXL operation name
  * @returns Formatted summary string

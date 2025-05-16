@@ -9,7 +9,7 @@ IMPORTANT: Resource names in CUCM are case-sensitive. You must use the exact cam
 ### Example 1: CamelCase Resource Names
 
 **Resource**: Route Partition (camelCase in CUCM: `routePartition`)  
-**Endpoint**: `PUT /api/axl/routepartition`
+**Endpoint**: `POST /api/axl/routepartition`
 
 #### Request Body - With camelCase Key:
 
@@ -47,7 +47,7 @@ IMPORTANT: Resource names in CUCM are case-sensitive. You must use the exact cam
 
 ### Example 2: Request Without Resource Wrapper
 
-**Endpoint**: `PUT /api/axl/routepartition`
+**Endpoint**: `POST /api/axl/routepartition`
 
 #### Request Body - Without Resource Key:
 
@@ -96,7 +96,7 @@ Several CUCM resources use camelCase naming. Here are some common examples:
 |-----------------------|------------|---------------------------|
 | `get*`                | GET        | `/api/axl/phone/{id}`     |
 | `list*`               | GET        | `/api/axl/phones`         |
-| `add*`                | PUT        | `/api/axl/phone`          |
+| `add*`                | POST        | `/api/axl/phone`          |
 | `update*`             | PATCH      | `/api/axl/phone/{id}`     |
 | `remove*`/`delete*`   | DELETE     | `/api/axl/phone/{id}`     |
 | Other                 | POST       | `/api/axl/customoperation`|

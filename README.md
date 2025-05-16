@@ -5,7 +5,7 @@ A dynamic REST API built with Express and TypeScript that provides a RESTful int
 ## Features
 
 - **Dynamic Route Generation**: Automatically creates RESTful endpoints for all AXL operations
-- **Intelligent HTTP Method Mapping**: Maps AXL operations to HTTP methods (e.g., `getPhone` → GET, `addPhone` → PUT)
+- **Intelligent HTTP Method Mapping**: Maps AXL operations to HTTP methods (e.g., `getPhone` → GET, `addPhone` → POST)
 - **Swagger Documentation**: Auto-generated API documentation with interactive UI
 - **AXL Operation Support**: Supports all AXL operations available in your CUCM version
 - **Template Variables**: Support for JSON template variables using the `%%_variable_%%` syntax with `_data` field

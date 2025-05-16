@@ -93,7 +93,7 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
       operationsSorter: 'method',
       deepLinking: true,
       // This will be overridden with a custom function in the UI itself that orders them:
-      // GET -> PUT -> PATCH -> DELETE -> POST
+      // GET -> PATCH -> DELETE -> POST
     },
     customCss: `
       .topbar-wrapper img { content: url("/logo.png"); }
@@ -348,7 +348,7 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
             httpMethod = 'GET';
             prefix = methodLower.startsWith('get') ? 'get' : 'list';
           } else if (methodLower.startsWith('add')) {
-            httpMethod = 'PUT';
+            httpMethod = 'POST';
             prefix = 'add';
           } else if (methodLower.startsWith('update')) {
             httpMethod = 'PATCH';
@@ -908,7 +908,7 @@ export function setupSwagger(app: Express): void { // Keeping function name for 
               const httpMethodMap = {
                 'get': 'GET',
                 'list': 'GET',
-                'add': 'PUT',
+                'add': 'POST',
                 'update': 'PATCH',
                 'remove': 'DELETE',
                 'delete': 'DELETE'
@@ -1278,8 +1278,8 @@ export function addPathToSwagger( // Keeping function name for backward compatib
     ? `${description} - Returns all available ${typeof path === 'string' ? path.split('/')[3] || '' : ''} resources`
     : description;
 
-  // For PUT and PATCH methods, add case-sensitive note
-  if (httpMethod.toLowerCase() === 'put' || httpMethod.toLowerCase() === 'patch') {
+  // For POST and PATCH methods, add case-sensitive note
+  if (httpMethod.toLowerCase() === 'post' || httpMethod.toLowerCase() === 'patch') {
     pathDescription += `\n\n**IMPORTANT - Case-Sensitive Resource Names:** This endpoint requires the exact camelCase for resource names.
     For this endpoint, use \`${resourceTag}\` as the resource key (not \`${typeof path === 'string' ? path.split('/')[3] || '' : ''}\`).
     For example: \`{ "${resourceTag}": { "name": "Example" } }\`
