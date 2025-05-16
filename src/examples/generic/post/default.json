@@ -1,0 +1,10 @@
+{
+  "summary": "Add Resource - With resource wrapper [Generic]",
+  "description": "For add operations, use the resource wrapper with exact camelCase",
+  "value": {
+    "resourceTag": {
+      "name": "Example-Name",
+      "description": "Example created using the REST API"
+    }
+  }
+}

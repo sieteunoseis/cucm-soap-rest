@@ -1,0 +1,9 @@
+{
+  "summary": "addAarGroup Default Example",
+  "description": "Default example generated from AXL Method Explorer for addAarGroup",
+  "value": {
+    "aarGroup": {
+      "name": ""
+    }
+  }
+}

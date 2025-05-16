@@ -1,0 +1,14 @@
+{
+  "summary": "Add Route Partition - With routePartition wrapper",
+  "description": "For add operations, use the routePartition wrapper - required for addRoutePartition",
+  "value": {
+    "routePartition": {
+      "name": "AXL-REST-API-PT",
+      "description": "Test using the REST API endpoint.",
+      "timeScheduleIdName": "",
+      "useOriginatingDeviceTimeZone": "true",
+      "timeZone": "",
+      "partitionUsage": ""
+    }
+  }
+}

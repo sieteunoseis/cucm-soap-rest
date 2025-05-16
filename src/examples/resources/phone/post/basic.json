@@ -1,0 +1,18 @@
+{
+  "summary": "Add Phone - With phone wrapper",
+  "description": "For add operations, use the phone wrapper - required for addPhone",
+  "value": {
+    "phone": {
+      "name": "SEP001122334455",
+      "description": "Test phone using the REST API endpoint.",
+      "product": "Cisco 8845",
+      "class": "Phone",
+      "protocol": "SIP",
+      "protocolSide": "User",
+      "devicePoolName": "Default",
+      "locationName": "Hub_None",
+      "sipProfileName": "Standard SIP Profile",
+      "commonPhoneConfigName": "Standard Common Phone Profile"
+    }
+  }
+}

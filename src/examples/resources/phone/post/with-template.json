@@ -1,0 +1,23 @@
+{
+  "summary": "Add Phone - With template variables",
+  "description": "For add operations with template variables - wrapper required",
+  "value": {
+    "phone": {
+      "name": "%%_prefix_%%%%_macaddress_%%",
+      "description": "Phone for %%_username_%%",
+      "product": "Cisco 8845",
+      "class": "Phone",
+      "protocol": "SIP",
+      "protocolSide": "User",
+      "devicePoolName": "Default",
+      "locationName": "Hub_None",
+      "sipProfileName": "Standard SIP Profile",
+      "commonPhoneConfigName": "Standard Common Phone Profile",
+      "_data": {
+        "prefix": "SEP",
+        "macaddress": "001122334455",
+        "username": "Example User"
+      }
+    }
+  }
+}
